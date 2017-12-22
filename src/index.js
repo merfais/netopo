@@ -13,7 +13,6 @@ import renderEdges from './edge/index'
 import renderDefs from './defs'
 import tooltip from './tooltip'
 import simulation from './simulation'
-import thumbnails from './thumbnails'
 import zoom from './zoom'
 
 export default class Network {
@@ -118,7 +117,6 @@ export default class Network {
     this._$nodeContainer = $zoomWraper.append('g').attr('class', 'nt-nodes')
     this._$edgeContainer2 = $zoomWraper.append('g').attr('class', 'nt-edges-cover')
     this._$nodeContainer2 = $zoomWraper.append('g').attr('class', 'nt-nodes-cover')
-    thumbnails.create($svgWraper, this._$graph)
-    zoom.create(this._$graph)
+    zoom.create($svgWraper, this._$graph)
   }
 }

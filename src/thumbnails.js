@@ -14,13 +14,13 @@ import {
   merge,
   bindStyle,
   pixeled,
-  parseTranform,
   getInverseRect,
 } from './util'
 
 const dftOptions = {
   enable: true,
-  maxWidth: 200, // 只支持px，防止缩略图过大
+  maxWidth: 400, // 只支持px，防止缩略图过大
+  minWidth: 350, // 只支持px，防止缩略图过小
   scale: 1 / 6,  // 缩略图占可视区的比例，超过maxWidth会缩小
   style: {
     display: 'block',
@@ -74,6 +74,11 @@ class Thumbnails {
     this._brushBoundary = 20      // 防止brush被拖出可视区
     this._brushMaxScale = 0.95    // brush最大缩放系数，占缩略图比例，防止brush完全溢出缩略图区域
     this._scaleExtent = [0.1, 4]  // 缩放阈值, 图像渲染后后重新计算大小
+    this._wraperTransform = {     // 缓存wraper的transform属性，每次读取DOM由于性能问题出现延时则会计算错误
+      x: 0,
+      y: 0,
+      k: 1,
+    }
   }
 
   /**
@@ -115,18 +120,28 @@ class Thumbnails {
       this._graphRect = getInverseRect(this._$graph.node())
       this._graphBaseRect = { ...this._graphRect }
       // 图像偏移后重新生成缩略图需要考虑偏移量
-      const transform = parseTranform(this._$wraper.attr('transform'))
-      this._wraperRect = getInverseRect(this._$wraper.node(), transform)
+      const wraperRect = getInverseRect(this._$wraper.node(), this._wraperTransform)
+      this._wraperRect = wraperRect
       // 缩略图需要使用svg的viewBox属性缩放后生成
+      const left = Math.min(0, this._wraperRect.left)
+      const top = Math.min(0, this._wraperRect.top)
+      const right = Math.max(this._graphRect.right, this._wraperRect.right)
+      const bottom = Math.max(this._graphRect.bottom, this._wraperRect.bottom)
       const viewBox = {
-        x: Math.min(0, this._wraperRect.left),
-        y: Math.min(0, this._wraperRect.top),
-        width: Math.max(this._graphRect.width, this._wraperRect.width),
-        height: Math.max(this._graphRect.height, this._wraperRect.height),
+        x: left,
+        y: top,
+        width: right - left,
+        height: bottom - top,
       }
-      // 缩略图大小受最大宽度的限制
-      if (viewBox.width * this._opts.scale > this._opts.maxWidth) {
-        this._opts.scale = this._opts.maxWidth / viewBox.width
+      if (this._brushRect) {
+        this._opts.scale = this._brushRect.width / this._graphRect.width
+      } else {
+        // 缩略图大小受最大宽度的限制
+        if (viewBox.width * this._opts.scale > this._opts.maxWidth) {
+          this._opts.scale = this._opts.maxWidth / viewBox.width
+        } else if (viewBox.width * this._opts.scale < this._opts.minWidth) {
+          this._opts.scale = this._opts.minWidth / viewBox.width
+        }
       }
       this._thumbnailsRect = {
         width: viewBox.width * this._opts.scale,
@@ -138,7 +153,9 @@ class Thumbnails {
         top: Math.min(0, this._wraperRect.top) * -this._opts.scale,
         left: Math.min(0, this._wraperRect.left) * -this._opts.scale,
       }
-      this._brushBaseRect = { ...this._brushRect }
+      if (!this._brushBaseRect) {
+        this._brushBaseRect = { ...this._brushRect }
+      }
       this._calcScaleExtent()
       const graph = this._$graph.node().cloneNode(true)
       graph.querySelector('.nt-edges-cover').remove()
@@ -152,6 +169,15 @@ class Thumbnails {
       }))
       this._$brush.call(bindStyle(pixeled(this._brushRect)))
     }
+  }
+
+  updateBrushPositon(dx, dy, k) {
+    this._brushRect.top -= dy * this._opts.scale
+    this._brushRect.left -= dx * this._opts.scale
+    this._$brush.call(bindStyle(pixeled({
+      left: this._brushRect.left,
+      top: this._brushRect.top,
+    })))
   }
 
   destroy() {
@@ -198,15 +224,22 @@ class Thumbnails {
       this._brushRect.width = this._brushBaseRect.width * k
       this._brushRect.height = this._brushBaseRect.height * k
       this._$brush.call(bindStyle(pixeled(this._brushRect)))
-      // 缩放时需要重新计算偏移位置
-      const dx = this._brushRect.left - this._brushBaseRect.left
-      const dy = this._brushRect.top - this._brushBaseRect.top
-      // 使用新的缩放系数计算偏移量
-      const x = -dx / k / this._opts.scale + this._graphBaseRect.left
-      const y = -dy / k / this._opts.scale + this._graphBaseRect.top
-      this._graphRect.left = x
-      this._graphRect.top = y
+      // 对于已transform的元素，调整scale后，且以元素上(x1, y1)点做基准点，
+      // 那么重新计算translate的(dx2, dy2)的公式
+      // dx2 = ((k1 - k2) * x1 + k2 * dx1) / k1
+      // dy2 = ((k1 - k2) * y1 + k2 * dy1) / k1
+      // 由于相对于可视区左上角(0, 0)做基准点，所以 (x1, y1) = (0, 0)
+      const { x: dx1, y: dy1, k: k1 } = this._wraperTransform
+      const x = 1 / k / k1 * dx1
+      const y = 1 / k / k1 * dy1
+      this._wraperTransform.x = x
+      this._wraperTransform.y = y
+      this._wraperTransform.k = 1 / k
+      const transform = zoomTransform({}).translate(x, y).scale(1 / k)
+      this._$graph.property('__zoom', transform)
       this._$wraper.attr('transform', `translate(${x}, ${y}) scale(${1 / k})`)
+      // scale与translate的{dx, dy} 计算有关，所有每次scale后要重置
+      this._opts.scale = this._brushRect.width / this._graphRect.width
     })
   }
 
@@ -230,12 +263,18 @@ class Thumbnails {
         this._brushRect.top = top
         this._brushRect.left = left
         this._$brush.call(bindStyle(pixeled({ left, top })))
-        let { x, y, k } = parseTranform(this._$wraper.attr('transform'))
-        // 偏移需要乘以缩放系数
-        x += -dx * k / this._opts.scale
-        y += -dy * k / this._opts.scale
-        const t = zoomTransform(this._$wraper.node())
-        console.log(t)
+        // 对于已transform的元素，调整translate时，已知增量{dx, dy}，
+        // 则计算真正的translate值的公式
+        // dx2 = dx + dx1 + x * (k1 - k2)
+        // dy2 = dx + dy1 + y * (k1 - k2)
+        // 由于scale未变化所以 k1 - k2 = 0
+        const { x: dx1, y: dy1, k } = this._wraperTransform
+        const x = dx1 - dx / this._opts.scale
+        const y = dy1 - dy / this._opts.scale
+        this._wraperTransform.x = x
+        this._wraperTransform.y = y
+        const transform = zoomTransform({}).translate(x, y).scale(k)
+        this._$graph.property('__zoom', transform)
         this._$wraper.attr('transform', `translate(${x}, ${y}) scale(${k})`)
       }
     })

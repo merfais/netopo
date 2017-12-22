@@ -112,13 +112,27 @@ export function getInverseRect(svgEl, transform) {
   // 参考 https://stackoverflow.com/questions/26049488/how-to-get-absolute-coordinates-of-object-inside-a-g-group
   const rect = svgEl.getBoundingClientRect()
   const ctm = svgEl.getScreenCTM().inverse()
-  const cx = ctm.e + rect.x * ctm.a + rect.y * ctm.c - rect.x
-  const cy = ctm.f + rect.x * ctm.b + rect.y * ctm.d - rect.y
-  rect.x += cx
-  rect.y += cy
+  const get = rect => {
+    return {
+      x: rect.x,
+      y: rect.y,
+      left: rect.left,
+      top: rect.top,
+      right: rect.right,
+      bottom: rect.bottom,
+      width: rect.width,
+      height: rect.height,
+    }
+  }
+  rect.x = ctm.e + rect.x * ctm.a + rect.y * ctm.c
+  rect.y = ctm.f + rect.x * ctm.b + rect.y * ctm.d
   if (transform) {
-    rect.x += transform.x
-    rect.y += transform.y
+    console.log('before', get(rect))
+  }
+  if (transform) {
+    rect.x = rect.x * transform.k + transform.x
+    rect.y = rect.y * transform.k + transform.y
+    console.log('after', get(rect))
   }
   // getBoundingClientRect 返回的是DOMRect类型，
   // 为方便操作转换成Object类型

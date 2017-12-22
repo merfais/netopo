@@ -9,19 +9,23 @@ import {
   merge,
   parseTranform,
 } from './util'
+import thumbnails from './thumbnails'
 
 const dftOptions = {
   enable: true,
   scaleExtent: [1 / 4, 8],
   translateExtent: null,
   filter: null,
+  useThumbnails: true,
 }
 
-const defaultFilter = function() {
-  if (options.thumbnails.enable) {
-    return event.type !== 'wheel'
+const defaultFilter = function(options) {
+  return () => {
+    if (options.useThumbnails) {
+      return event.type !== 'wheel' && event.type !== 'dblclick'
+    }
+    return !event.button
   }
-  return !event.button
 }
 
 class Zoom {
@@ -32,9 +36,10 @@ class Zoom {
     this._$wraper = null
   }
 
-  create(subscriber) {
-    this._$wraper = subscriber.select('.zoom-wraper')
-    subscriber.call(this._zoomer)
+  create($root, $subscriber) {
+    thumbnails.create($root, $subscriber)
+    this._$wraper = $subscriber.select('.zoom-wraper')
+    $subscriber.call(this._zoomer)
   }
 
   destroy() {
@@ -49,13 +54,17 @@ class Zoom {
       this._bindParams()
     }).on('zoom', () => {
       if (this._opts.enable) {
-        let { x, y, k } = parseTranform(this._$wraper.attr('transform'))
-        console.log(event.transform)
-        x = event.transform.x
-        y = event.transform.y
-        this._$wraper.attr('transform', `translate(${x}, ${y}) scale(${k})`)
-        //  this._$wraper.attr('transform', event.transform)
-        // TODO: update thumbnails brush position
+        if (this._opts.useThumbnails) {
+          let { x, y, k } = parseTranform(this._$wraper.attr('transform'))
+          const dx = event.transform.x - x
+          const dy = event.transform.y - y
+          x = event.transform.x
+          y = event.transform.y
+          this._$wraper.attr('transform', `translate(${x}, ${y}) scale(${k})`)
+          thumbnails.updateBrushPositon(dx, dy, k)
+        } else {
+          this._$wraper.attr('transform', event.transform)
+        }
       }
     })
   }
@@ -70,7 +79,7 @@ class Zoom {
     if (this._opts.filter !== null) {
       this._zoomer.filter(this._opts.filter)
     } else {
-      this._zoomer.filter(defaultFilter)
+      this._zoomer.filter(defaultFilter(this._opts))
     }
   }
 }
