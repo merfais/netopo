@@ -32,14 +32,39 @@ class Zoom {
 
   constructor(options) {
     this._opts = options
-    this._zoomer = this._initZoom()
+    this._zoomer = zoom()
     this._$wraper = null
+    this._$subscriber = null
   }
 
   create($root, $subscriber) {
     thumbnails.create($root, $subscriber)
+    this._$subscriber = $subscriber
     this._$wraper = $subscriber.select('.zoom-wraper')
-    $subscriber.call(this._zoomer)
+    this.update()
+  }
+
+  update() {
+    if (this._opts.enable) {
+      this._bindParams()
+      let wraperTransform = {}
+      this._zoomer.on('start', () => {
+        wraperTransform = parseTranform(this._$wraper.attr('transform'))
+      }).on('zoom', () => {
+        if (this._opts.useThumbnails) {
+          if (event.sourceEvent.type === 'mousemove') {
+            wraperTransform.x = event.transform.x
+            wraperTransform.y = event.transform.y
+            const { x, y, k } = wraperTransform
+            this._$wraper.attr('transform', `translate(${x}, ${y}) scale(${k})`)
+            thumbnails.updateBrushPositon(wraperTransform)
+          }
+        } else {
+          this._$wraper.attr('transform', event.transform)
+        }
+      })
+    }
+    this._$subscriber.call(this._zoomer)
   }
 
   destroy() {
@@ -47,26 +72,6 @@ class Zoom {
     this._zoomer = null
     this._$wraper = null
     this._opts = null
-  }
-
-  _initZoom() {
-    return zoom().on('start', () => {
-      this._bindParams()
-    }).on('zoom', () => {
-      if (this._opts.enable) {
-        if (this._opts.useThumbnails) {
-          let { x, y, k } = parseTranform(this._$wraper.attr('transform'))
-          const dx = event.transform.x - x
-          const dy = event.transform.y - y
-          x = event.transform.x
-          y = event.transform.y
-          this._$wraper.attr('transform', `translate(${x}, ${y}) scale(${k})`)
-          thumbnails.updateBrushPositon(dx, dy, k)
-        } else {
-          this._$wraper.attr('transform', event.transform)
-        }
-      }
-    })
   }
 
   _bindParams() {

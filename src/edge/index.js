@@ -61,7 +61,7 @@ function prepareProp(d) {
   }
 }
 
-function renderEdge(d) {
+function renderEdge(d, $parent) {
   const prop = prepareProp(d)
   const prop2 = {
     style: merge({}, prop.style, {
@@ -77,7 +77,7 @@ function renderEdge(d) {
   const $edge = select(document.createElementNS(namespaces.svg, 'path'))
   $edge.call(bind(prop))
   const $edge2 = select(document.createElementNS(namespaces.svg, 'path'))
-  $edge2.call(bind(prop2)).call(bindHover('edge'))
+  $edge2.call(bind(prop2)).call(bindHover($parent, 'edge'))
   return {
     $edge,
     $edge2,
@@ -96,52 +96,10 @@ export default function render($container, $container2, edges) {
     _.forEach(edgeOpts, (item, key) => {
       d[key] = merge({}, item, d[key])
     })
-    const { $edge, $edge2 } = renderEdge(d)
+    const { $edge, $edge2 } = renderEdge(d, $container)
     $container.append(() => {
       return $edge.node()
     })
     return $edge2.node()
   })
 }
-
-
-/*
-function renderEdge($g, d) {
-  const attr = prepareAttr(d)
-  $g.call(bindHover('edge'))
-  const $path = $g.selectAll('path').remove().data([d]).enter()
-  $path.append('path')
-    .call(bind(attr))
-  $path.append('path').call(bind({
-    style: merge({}, attr.style, {
-      opacity: 0,
-      'stroke-width': d.path.hoverBoundarySpan,
-      filter: null,
-    }),
-    attr: {
-      id: attr.attr.id + '_boundary',
-      d: attr.attr.d,
-    }
-  }))
-}
-
-export default function render($container, edges) {
-  const edgeOpts = merge({}, DEFAULT.options, options.edge)
-  // eslint-disable-next-line no-underscore-dangle
-  const $edges = $container.selectAll('g').data(edges, d => d._id)
-  $edges.exit().remove()
-  $edges.enter().append(d => {
-    if (!edgeType[d.type]) {
-      d.type = DEFAULT.type
-    }
-    const $g = select(document.createElementNS(namespaces.svg, 'g'))
-    _.forEach(edgeOpts, (item, key) => {
-      d[key] = merge({}, item, d[key])
-    })
-    renderEdge($g, d)
-    return $g.node()
-  })
-  return $edges
-}
- *
- */

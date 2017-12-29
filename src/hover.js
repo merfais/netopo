@@ -1,9 +1,7 @@
 import {
-  select
-} from 'd3-selection'
-import {
   bind,
-  bindStyle
+  bindStyle,
+  bindClass,
 } from './util'
 import ds from './dataSet'
 import tooltip from './tooltip'
@@ -22,64 +20,129 @@ const dftTooltipFormatter = {
   }
 }
 
-const subscriber = {
-  node: {
-    mouseenter($selector, d) {
-      select(`#${d.id}_shape`)
-        .call(bind(d.shape.hover))
-      if (d.tooltip.enable) {
-        let formatter = dftTooltipFormatter.node
-        if (_.isFunction(d.tooltip.formatter)) {
-          formatter = d.tooltip.formatter
+const subscribers = {
+  node($parent) {
+    return {
+      mouseenter(d) {
+        $parent
+          .select(`#${d.id}_shape`)
+          .call(bind(d.shape.hover))
+        if (d.tooltip.enable) {
+          let formatter = dftTooltipFormatter.node
+          if (_.isFunction(d.tooltip.formatter)) {
+            formatter = d.tooltip.formatter
+          }
+          tooltip.show(formatter(d))
         }
-        tooltip.show(formatter(d))
-      }
-      eventer.emit('hover', $selector, d)
-    },
-    mouseleave($selector, d) {
-      select(`#${d.id}_shape`)
-        .call(bindStyle(d.shape.style))
-        .attr('class', d.shape.class)
-      tooltip.hide()
-    },
-    mousemove($selector, d) {
-      if (d.tooltip.enable) {
-        tooltip.update()
-      }
-    },
-  },
-  edge: {
-    mouseenter($selector, d) {
-      select(`#${d.id}`)
-        .call(bind(d.path.hover))
-      if (d.tooltip.enable) {
-        let formatter = dftTooltipFormatter.edge
-        if (_.isFunction(d.tooltip.formatter)) {
-          formatter = d.tooltip.formatter
+        eventer.emit('hover', d)
+      },
+      mouseleave(d) {
+        const $shape = $parent
+          .select(`#${d.id}_shape`)
+          .call(bindStyle(d.shape.style))
+          .call(bindClass(d.shape.class))
+        if (d.shape.type === 'image') {
+          $shape.attr('href', d.shape.href)
         }
-        tooltip.show(formatter(d))
-      }
-    },
-    mouseleave($selector, d) {
-      select(`#${d.id}`)
-        .call(bindStyle(d.path.style))
-        .attr('class', d.path.class)
-      tooltip.hide()
-    },
-    mousemove($selector, d) {
-      if (d.tooltip.enable) {
-        tooltip.update()
-      }
-    },
+        tooltip.hide()
+      },
+      mousemove(d) {
+        if (d.tooltip.enable) {
+          tooltip.update()
+        }
+      },
+    }
   },
-  shape: {
-
+  edge($parent) {
+    return {
+      mouseenter(d) {
+        $parent
+          .select(`#${d.id}`)
+          .call(bind(d.path.hover))
+        if (d.tooltip.enable) {
+          let formatter = dftTooltipFormatter.edge
+          if (_.isFunction(d.tooltip.formatter)) {
+            formatter = d.tooltip.formatter
+          }
+          tooltip.show(formatter(d))
+        }
+      },
+      mouseleave(d) {
+        $parent
+          .select(`#${d.id}`)
+          .call(bindStyle(d.path.style))
+          .call(bindClass(d.path.class))
+        tooltip.hide()
+      },
+      mousemove(d) {
+        if (d.tooltip.enable) {
+          tooltip.update()
+        }
+      },
+    }
   },
-  label: {
-
+  label($parent) {
+    return {
+      mouseenter(d) {
+        $parent
+          .select(`#${d.id}`)
+          .select('div')
+          .call(bind(d.label.hover))
+        if (d.tooltip.enable) {
+          let formatter = dftTooltipFormatter.node
+          if (_.isFunction(d.tooltip.formatter)) {
+            formatter = d.tooltip.formatter
+          }
+          tooltip.show(formatter(d))
+        }
+        eventer.emit('hover', d)
+      },
+      mouseleave(d) {
+        $parent
+          .select(`#${d.id}`)
+          .select('div')
+          .call(bindStyle(d.label.style))
+          .call(bindClass(d.label.class))
+        tooltip.hide()
+      },
+      mousemove(d) {
+        if (d.tooltip.enable) {
+          tooltip.update()
+        }
+      },
+    }
+  },
+  thumbnails($parent) {
+    return {
+      mouseenter(d) {
+        $parent.select('.thumbnails')
+          .transition()
+          .call(bindStyle(d.hover))
+        eventer.emit('hover', d)
+      },
+      mouseleave(d) {
+        $parent.select('.thumbnails')
+          .transition()
+          .call(bindStyle({
+            height: d.style.height,
+            width: d.style.width,
+          }))
+      },
+    }
   },
 }
 
-export default function bindHover(type) {
-  return eventer.bind(subscriber[type])
+export function unBindHover(type) {
+  const subscriber = subscribers[type]
+  if (subscriber) {
+    throw new Error('event subscriber not defined')
+  }
+  return eventer.unBind(subscriber())
+}
+export default function bindHover($parent, type) {
+  const subscriber = subscribers[type]
+  if (!subscriber) {
+    throw new Error('event subscriber not defined')
+  }
+  return eventer.bind(subscriber($parent))
 }

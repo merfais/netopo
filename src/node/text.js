@@ -1,26 +1,45 @@
 import {
   merge
-} from '../util.js'
+} from '../util'
+import {
+  calcLabelHeight
+} from './index'
 
-const DEFAULT = {
-  get label() {
-    return {
-      x: 0,
-      y: 0,
-      width: 100,
-      height: 30,
+const dftOptions = {
+  shape: {
+    x: 0,
+    y: 0,
+    rx: 5,
+    ry: 5,
+    width: null,
+    height: null,
+    style: {
+      cursor: 'pointer',
+      fill: 'e8e8e8',
+    },
+  },
+  label: {
+    x: 0,
+    y: 0,
+    width: 100,
+    height: null,
+    style: {
+      display: 'flex',
+      height: '100%',
+      color: '#333',
+      'justify-content': 'center',
+      'align-items': 'center',
+      'word-break': 'break-all',
+      'line-height': '1.2em',
+      'letter-spacing': '0.1em',
+      'font-size': '14px',
+      'box-sizing': 'border-box',
+    },
+    hover: {
       style: {
-        display: 'flex',
-        height: '100%',
-        'justify-content': 'center',
-        'align-items': 'center',
-        'word-break': 'break-all',
-        'line-height': '1.2em',
-        'letter-spacing': '0.1em',
-        padding: '5px',
-        color: '#333',
+        color: '#3492ff',
       },
-      hover: {}
+      class: '',
     }
   }
 }
@@ -34,11 +53,30 @@ function calcLinkPoint(d) {
   d.linkPoint.y = d.linkPoint.y || y + height / 2
 }
 
-function label(d) {
-  d.label = merge({}, DEFAULT.label, d.label)
+function prepareLabel(d) {
+  d.label = merge({}, dftOptions.label, d.label)
+  if (d.label.height === null) {
+    d.label.height = calcLabelHeight(d.label)
+  }
+}
+
+function prepareShape(d) {
+  d.shape = merge({}, dftOptions.shape, d.shape)
+  if (d.shape.height === null) {
+    d.shape.height = d.label.height
+  }
+  if (d.shape.width === null) {
+    d.shape.width = d.label.width
+  }
   calcLinkPoint(d)
 }
 
+function prepare(d) {
+  prepareLabel(d)
+  prepareShape(d)
+}
+
+
 export default {
-  label
+  prepare,
 }

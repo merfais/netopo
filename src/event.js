@@ -26,7 +26,7 @@ const eventer = {
         $selector.on(name, function(...paramters) {
           // d3 event 回调中this有特殊的含义，需要将this传递下去
           // 因此不能使用箭头函数
-          handler.call(this, $selector, ...paramters)
+          handler.call(this, ...paramters, $selector)
         })
       })
     }

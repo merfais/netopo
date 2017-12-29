@@ -100,31 +100,3 @@ class Drag {
 const dragger = new Drag()
 
 export default dragger
-
-/*
-
-export default function bindDrag($selector, options) {
-  if (options.enable) {
-    const tmp = drag()
-      .on('start', handleDragStart)
-      .on('drag', handleDrag)
-      .on('end', handleDragEnd)
-    $selector.call(tmp)
-  }
-}
-function handleDragStart(d) {
-  createVirtualNode(d)
-}
-
-function handleDrag(d) {
-  tooltip.hide()
-  moveVirtualNode(d)
-}
-
-function handleDragEnd(d) {
-  destroyVirtualNode()
-  update(d)
-}
-
- *
- */

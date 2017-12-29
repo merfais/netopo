@@ -10,6 +10,9 @@ import {
 } from 'd3-zoom'
 import { Base64 } from 'js-base64'
 import options from './options'
+import bindHover, {
+  unBindHover
+} from './hover'
 import {
   merge,
   bindStyle,
@@ -19,14 +22,17 @@ import {
 
 const dftOptions = {
   enable: true,
-  maxWidth: 400, // 只支持px，防止缩略图过大
-  minWidth: 350, // 只支持px，防止缩略图过小
+  width: 200,
+  height: 200,
+  maxWidth: 200, // 只支持px，防止缩略图过大
+  minWidth: 150, // 只支持px，防止缩略图过小
   scale: 1 / 6,  // 缩略图占可视区的比例，超过maxWidth会缩小
+  auto: true,
   style: {
     display: 'block',
     overflow: 'hidden',
-    width: null,
-    height: null,
+    width: '40px',
+    height: '40px',
     position: 'absolute',
     top: 0,
     right: 0,
@@ -66,14 +72,11 @@ class Thumbnails {
     this._zoomer = this._initZoom()
     this._drager = this._initDrag()
     this._graphRect = null        // 可视区域
-    this._graphBaseRect = null    // 用于缩放后重新计算可视区的偏移
     this._wraperRect = null       // 图像区域
-    this._thumbnailsRect = null   // 缩略图区域，>= 图像区域
     this._brushRect = null        // brush区域，= 可视区域
     this._brushBaseRect = null    // 用于计算缩放后的brush大小
     this._brushBoundary = 20      // 防止brush被拖出可视区
     this._brushMaxScale = 0.95    // brush最大缩放系数，占缩略图比例，防止brush完全溢出缩略图区域
-    this._scaleExtent = [0.1, 4]  // 缩放阈值, 图像渲染后后重新计算大小
     this._wraperTransform = {     // 缓存wraper的transform属性，每次读取DOM由于性能问题出现延时则会计算错误
       x: 0,
       y: 0,
@@ -90,7 +93,9 @@ class Thumbnails {
    * @param {DOMObject} $sourceGraph 原始图DOM，原始图必须含class=[.wraper]的标签，用于缩放和平移
    */
   create($parent, $sourceGraph) {
-    this._$thumbnails = $parent.append('div')
+    this._$thumbnails = $parent.selectAll('div').data([this._opts])
+    this._$thumbnails.exit().remove()
+    this._$thumbnails = this._$thumbnails.enter().append('div').attr('class', 'thumbnails')
     this._$brush = this._$thumbnails.append('div').attr('class', 'brush')
     this._$graph = $sourceGraph
     this._$wraper = this._$graph.select('.zoom-wraper')
@@ -100,6 +105,7 @@ class Thumbnails {
     this._$thumbnails
       .call(bindStyle(this._opts.style))
       .call(this._zoomer)
+      .call(bindHover($parent, 'thumbnails'))
       .on('wheel', () => {
         event.stopPropagation()
         event.preventDefault()
@@ -118,10 +124,8 @@ class Thumbnails {
   update() {
     if (this._opts.enable) {
       this._graphRect = getInverseRect(this._$graph.node())
-      this._graphBaseRect = { ...this._graphRect }
       // 图像偏移后重新生成缩略图需要考虑偏移量
-      const wraperRect = getInverseRect(this._$wraper.node(), this._wraperTransform)
-      this._wraperRect = wraperRect
+      this._wraperRect = getInverseRect(this._$wraper.node(), this._wraperTransform)
       // 缩略图需要使用svg的viewBox属性缩放后生成
       const left = Math.min(0, this._wraperRect.left)
       const top = Math.min(0, this._wraperRect.top)
@@ -133,27 +137,28 @@ class Thumbnails {
         width: right - left,
         height: bottom - top,
       }
+      // 图拖拽发生变化后重新生成缩略图，需要在原来缩放的基础上重新计算scale
       if (this._brushRect) {
         this._opts.scale = this._brushRect.width / this._graphRect.width
-      } else {
-        // 缩略图大小受最大宽度的限制
-        if (viewBox.width * this._opts.scale > this._opts.maxWidth) {
-          this._opts.scale = this._opts.maxWidth / viewBox.width
-        } else if (viewBox.width * this._opts.scale < this._opts.minWidth) {
-          this._opts.scale = this._opts.minWidth / viewBox.width
-        }
       }
-      this._thumbnailsRect = {
-        width: viewBox.width * this._opts.scale,
-        height: viewBox.height * this._opts.scale,
+      // 缩略图大小受最大宽度的限制
+      if (viewBox.width * this._opts.scale > this._opts.maxWidth) {
+        this._opts.scale = this._opts.maxWidth / viewBox.width
+      } else if (viewBox.width * this._opts.scale < this._opts.minWidth) {
+        this._opts.scale = this._opts.minWidth / viewBox.width
       }
+      this._opts.width = viewBox.width * this._opts.scale
+      this._opts.height = viewBox.height * this._opts.scale
       this._brushRect = {
         width: this._graphRect.width * this._opts.scale,
         height: this._graphRect.height * this._opts.scale,
         top: Math.min(0, this._wraperRect.top) * -this._opts.scale,
         left: Math.min(0, this._wraperRect.left) * -this._opts.scale,
       }
-      if (!this._brushBaseRect) {
+      if (this._brushBaseRect) {
+        this._brushBaseRect.width = this._brushRect.width * this._wraperTransform.k
+        this._brushBaseRect.height = this._brushRect.height * this._wraperTransform.k
+      } else {
         this._brushBaseRect = { ...this._brushRect }
       }
       this._calcScaleExtent()
@@ -162,16 +167,28 @@ class Thumbnails {
       graph.querySelector('.nt-nodes-cover').remove()
       graph.querySelector('defs').remove()
       const image = genImg(viewBox, graph)
-      this._$thumbnails.call(bindStyle({
+      const style = {
         display: this._opts.style.display,
         'background-image': `url(${image})`,
-        ...pixeled(this._thumbnailsRect),
-      }))
+      }
+      this._opts.hover = pixeled({
+        width: this._opts.width,
+        height: this._opts.height
+      })
+      if (this._opts.alwaysSpread) {
+        merge(this._opts.style, this._opts.hover)
+        merge(style, this._opts.hover)
+      }
+      this._$thumbnails.call(bindStyle(style))
       this._$brush.call(bindStyle(pixeled(this._brushRect)))
     }
   }
 
-  updateBrushPositon(dx, dy, k) {
+  updateBrushPositon(transform) {
+    const dx = transform.x - this._wraperTransform.x
+    const dy = transform.y - this._wraperTransform.y
+    this._wraperTransform.x += dx
+    this._wraperTransform.y += dy
     this._brushRect.top -= dy * this._opts.scale
     this._brushRect.left -= dx * this._opts.scale
     this._$brush.call(bindStyle(pixeled({
@@ -183,7 +200,7 @@ class Thumbnails {
   destroy() {
     this._drager.on('drag', null)
     this._zoomer.on('start', null).on('zoom', null)
-    this._$thumbnails.on('wheel', null)
+    this._$thumbnails.on('wheel', null).call(unBindHover('thumbnails'))
     this._$thumbnails.remove()
     this._$thumbnails = null
     this._$graph = null
@@ -191,38 +208,35 @@ class Thumbnails {
     this._$brush = null
     this._opts = null
     this._graphRect = null
-    this._graphBaseRect = null
     this._wraperRect = null
-    this._thumbnailsRect = null
     this._brushRect = null
     this._brushBaseRect = null
   }
 
   _calcScaleExtent() {
     // 缩略图高宽比>可视区，则以宽为基准，即宽度临界值后达到，高度可以超出
-    const modifier = this._thumbnailsRect.width / this._thumbnailsRect.height >
+    let modifier = this._opts.width / this._opts.height >
       this._brushRect.width / this._brushRect.height ? 'width' : 'height'
-    const max = this._thumbnailsRect[modifier] * this._brushMaxScale
+    const max = this._opts[modifier] * this._brushMaxScale
     // 如果brush初始范围已经超过缩略图区域，则初始范围即使最大缩放区域
-    const maxValue = max > this._brushRect[modifier] ? max : this._thumbnailsRect[modifier]
-    this._scaleExtent[1] = maxValue / this._brushRect[modifier]
+    const maxValue = max > this._brushRect[modifier] ? max : this._opts[modifier]
+    const maxScale = maxValue / this._brushRect[modifier] / this._wraperTransform.k
     // 视窗 宽 > 高, 则以高为基准，即高度最小值先到达
-    const minScale = this._brushRect.width > this._brushRect.height ?
-      this._opts.brush.minSize / this._brushRect.height :
-      this._opts.brush.minSize / this._brushRect.width
-    this._scaleExtent[0] = minScale > 1 ? 0.5 : minScale
+    modifier = this._brushRect.width > this._brushRect.height ? 'height' : 'width'
+    const min = this._opts.brush.minSize / this._brushRect[modifier]
+    const minScale = (min > 1 ? 0.5 : min) / this._wraperTransform.k
+    this._zoomer.scaleExtent([minScale, maxScale])
   }
 
   _initZoom() {
     return zoom().filter(() => {
       return event.type === 'wheel'
-    }).on('start', () => {
-      this._zoomer.scaleExtent(this._scaleExtent)
-      // TODO: update scaleExtent before zoom
     }).on('zoom', () => {
       let k = event.transform.k
       this._brushRect.width = this._brushBaseRect.width * k
       this._brushRect.height = this._brushBaseRect.height * k
+      // scale与translate的{dx, dy} 计算有关，所有每次scale后要重置
+      this._opts.scale = this._brushRect.width / this._graphRect.width
       this._$brush.call(bindStyle(pixeled(this._brushRect)))
       // 对于已transform的元素，调整scale后，且以元素上(x1, y1)点做基准点，
       // 那么重新计算translate的(dx2, dy2)的公式
@@ -238,8 +252,6 @@ class Thumbnails {
       const transform = zoomTransform({}).translate(x, y).scale(1 / k)
       this._$graph.property('__zoom', transform)
       this._$wraper.attr('transform', `translate(${x}, ${y}) scale(${1 / k})`)
-      // scale与translate的{dx, dy} 计算有关，所有每次scale后要重置
-      this._opts.scale = this._brushRect.width / this._graphRect.width
     })
   }
 
@@ -249,13 +261,13 @@ class Thumbnails {
       let left = this._brushRect.left + event.dx
       if (top + this._brushRect.height < this._brushBoundary) {
         top = this._brushBoundary - this._brushRect.height
-      } else if (top > this._thumbnailsRect.height - this._brushBoundary) {
-        top = this._thumbnailsRect.height - this._brushBoundary
+      } else if (top > this._opts.height - this._brushBoundary) {
+        top = this._opts.height - this._brushBoundary
       }
       if (left + this._brushRect.width < this._brushBoundary) {
         left = this._brushBoundary - this._brushRect.width
-      } else if (left > this._thumbnailsRect.width - this._brushBoundary) {
-        left = this._thumbnailsRect.width - this._brushBoundary
+      } else if (left > this._opts.width - this._brushBoundary) {
+        left = this._opts.width - this._brushBoundary
       }
       const dy = top - this._brushRect.top
       const dx = left - this._brushRect.left

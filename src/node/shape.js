@@ -14,13 +14,28 @@ function genShapeProp(d) {
   const attr = { ...d.shape }
   attr.id = `${d.id}_shape`
   const style = attr.style
+  const type = attr.type
   delete attr.type
   delete attr.hover
   delete attr.style
-  return {
+  const prop = {
     attr,
     style,
+    type,
   }
+  const prop2 = {
+    attr: {
+      ...attr,
+      id: attr.id + '_cover',
+    },
+    style: {
+      ...style,
+      opacity: 0,
+      filter: null,
+    },
+    type,
+  }
+  return { prop, prop2 }
 }
 
 function genLabelProp(d) {
@@ -38,32 +53,34 @@ function genLabelProp(d) {
   }
 }
 
-const shape = {
+const nodeShapes = {
   rect,
   circle,
   image,
   text: label,
 }
 
-export const shapes = Object.keys(shape)
+export const shapes = Object.keys(nodeShapes)
 
 export function renderComponent(d, renderShape, renderLabel) {
-  const prepare = shape[d.shape.type]
-  if (d.shape.type !== 'text') {
-    prepare.shape(d)
-    const prop = genShapeProp(d)
-    const prop2 = {
-      attr: { ...prop.attr },
-      style: { ...prop.style }
-    }
-    prop2.attr.id += '_cover'
-    prop2.style.opacity = 0
-    prop2.style.filter = null
-    renderShape(d, prop, prop2)
+  const node = nodeShapes[d.shape.type]
+  if (!node) {
+    throw new Error('shape type is not supported')
   }
+  node.prepare(d)
+  const nodeProp = genShapeProp(d)
+  if (d.shape.type === 'text') {
+    nodeProp.prop = {}
+    nodeProp.prop2.type = 'rect'
+  } else if (d.shape.type === 'image') {
+    nodeProp.prop2.type = 'rect'
+    delete nodeProp.prop2.attr.href
+  }
+  let labelProp = {}
   d.label.text += ''
   if (d.label.text) {
-    prepare.label(d)
-    renderLabel(genLabelProp(d))
+    labelProp = genLabelProp(d)
   }
+  renderShape(d, nodeProp.prop, nodeProp.prop2)
+  renderLabel(labelProp)
 }

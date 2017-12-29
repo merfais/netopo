@@ -30,25 +30,31 @@ const dftOptions = {
 }
 
 function renderShape($node, $node2) {
-  return (d, prop, prop2) => {
-    $node.append(d.shape.type)
-      .call(bind(prop))
-    $node2.selectAll(d.shape.type).remove()
-      .data([d]).enter()
-      .append(d.shape.type)
-      .call(bind(prop2))
-      .call(bindHover('node'))
-      .call(drag.bind(d.drag.enable))
+  return (d, prop = {}, prop2 = {}) => {
+    if (!_.isEmpty(prop)) {
+      $node.append(prop.type)
+        .call(bind(prop))
+    }
+    if (!_.isEmpty(prop2)) {
+      $node2.selectAll(prop2.type).remove()
+        .data([d]).enter()
+        .append(prop2.type)
+        .call(bind(prop2))
+        .call(bindHover($node, d.shape.type === 'text' ? 'label' : 'node'))
+        .call(drag.bind(d.drag.enable))
+    }
   }
 }
 
 function renderLabel($node) {
-  return ({ attr, style, text }) => {
-    $node.append('foreignObject')
-      .call(bindAttr(attr))
-      .append('xhtml:div')
-      .call(bindStyle(style))
-      .html(text)
+  return (prop = {}) => {
+    if (!_.isEmpty(prop)) {
+      $node.append('foreignObject')
+        .call(bindAttr(prop.attr))
+        .append('xhtml:div')
+        .call(bindStyle(prop.style))
+        .html(prop.text)
+    }
   }
 }
 
@@ -76,7 +82,7 @@ function renderNode(d) {
   const $node = select(document.createElementNS(namespaces.svg, 'g'))
   const $node2 = select(document.createElementNS(namespaces.svg, 'g'))
   renderComponent(d, renderShape($node, $node2), renderLabel($node))
-  // shape lable要先计算，因为节点的position信息需要动态计算
+  // shape label要先计算，因为节点的position信息需要动态计算
   const prop = prepareNode(d)
   const prop2 = merge({}, prop, {
     attr: {
@@ -89,6 +95,31 @@ function renderNode(d) {
     $node2,
     $node,
   }
+}
+
+let $labelDiv
+let $labelDivWrapper
+let labelDivStyle = {}
+export function appendHiddenDiv($parent) {
+  if ($parent) {
+    $labelDivWrapper = $parent.append('div').call(bindStyle({
+      visibility: 'hidden',
+      position: 'absolute',
+    }))
+    $labelDiv = $labelDivWrapper.append('div')
+  }
+}
+
+export function calcLabelHeight(label) {
+  if (label.width !== null) {
+    $labelDivWrapper.style('width', parseFloat(label.width) + 'px')
+  }
+  $labelDiv.html(label.text)
+  if (!_.isEqual(labelDivStyle, label.style)) {
+    labelDivStyle = label.style
+    $labelDiv.call(bindStyle(label.style))
+  }
+  return $labelDivWrapper.node().clientHeight
 }
 
 export default function render($container, $container2, nodes) {

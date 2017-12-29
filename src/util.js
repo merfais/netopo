@@ -71,10 +71,46 @@ export function bindStyle(style) {
   }
 }
 
+export function bindClass(klass) {
+  const classes = {}
+  if (klass) {
+    if (_.isString(klass)) {
+      klass.replace(/\s+/g, ',').split(',').forEach(item => {
+        classes[item] = true
+      })
+    } else if (_.isObject(klass)) {
+      _.forEach(klass, (value, key) => {
+        key.replace(/\s+/g, ',').split(',').forEach(item => {
+          classes[item] = value
+        })
+      })
+    } else {
+      throw new Error('class type must be string or object')
+    }
+  }
+  return $selector => {
+    _.forEach(classes, (value, key) => {
+      $selector.classed(key, value)
+    })
+    return $selector
+  }
+}
+
 export function bind(data) {
   return $selector => {
-    bindAttr(data.attr)($selector)
-    bindStyle(data.style)($selector)
+    const style = data.style
+    const classes = data.class
+    let attr = data.attr
+    if (!attr) {
+      const tmp = { ...data }
+      delete tmp.style
+      delete tmp.class
+      delete tmp.attr
+      attr = tmp
+    }
+    bindAttr(attr)($selector)
+    bindStyle(style)($selector)
+    bindClass(classes)($selector)
     return $selector
   }
 }
@@ -112,27 +148,11 @@ export function getInverseRect(svgEl, transform) {
   // 参考 https://stackoverflow.com/questions/26049488/how-to-get-absolute-coordinates-of-object-inside-a-g-group
   const rect = svgEl.getBoundingClientRect()
   const ctm = svgEl.getScreenCTM().inverse()
-  const get = rect => {
-    return {
-      x: rect.x,
-      y: rect.y,
-      left: rect.left,
-      top: rect.top,
-      right: rect.right,
-      bottom: rect.bottom,
-      width: rect.width,
-      height: rect.height,
-    }
-  }
   rect.x = ctm.e + rect.x * ctm.a + rect.y * ctm.c
   rect.y = ctm.f + rect.x * ctm.b + rect.y * ctm.d
   if (transform) {
-    console.log('before', get(rect))
-  }
-  if (transform) {
     rect.x = rect.x * transform.k + transform.x
     rect.y = rect.y * transform.k + transform.y
-    console.log('after', get(rect))
   }
   // getBoundingClientRect 返回的是DOMRect类型，
   // 为方便操作转换成Object类型

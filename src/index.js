@@ -8,7 +8,7 @@ import {
 } from './util'
 import ds from './dataSet'
 import options from './options'
-import renderNodes from './node/index'
+import renderNodes, { appendHiddenDiv } from './node/index'
 import renderEdges from './edge/index'
 import renderDefs from './defs'
 import tooltip from './tooltip'
@@ -97,6 +97,7 @@ export default class Network {
       position: 'relative',
     }))
     tooltip.create($container)
+    appendHiddenDiv($container)
     const $svgWraper = $container.append('div').call(bindStyle({
       width: grid.width,
       height: grid.height || '500px',
