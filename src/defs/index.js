@@ -46,7 +46,7 @@ class Filter {
 
 export const filter = new Filter()
 
-export default function renderDefs($defs) {
+export function renderDefs($defs) {
   if (filter.data.length) {
     const $filters = $defs.selectAll('filter').data(filter.data, d => d.id)
     $filters.exit().remove()
@@ -57,6 +57,10 @@ export default function renderDefs($defs) {
     })
   }
   return $defs
+}
+
+export function destroyDefs($defs) {
+  $defs.remove()
 }
 
 /*

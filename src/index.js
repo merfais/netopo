@@ -8,18 +8,35 @@ import {
 } from './util'
 import ds from './dataSet'
 import options from './options'
-import renderNodes, { appendHiddenDiv } from './node/index'
-import renderEdges from './edge/index'
-import renderDefs from './defs'
+import eventer from './event'
+import {
+  renderNodes,
+  updateNodesPosition,
+  appendHiddenDiv,
+  destroyNodes,
+} from './node/index'
+import {
+  renderEdges,
+  updateEdgesPosition,
+  destroyEdges
+} from './edge/index'
+import {
+  renderDefs,
+  destroyDefs,
+} from './defs'
 import tooltip from './tooltip'
 import simulation from './simulation'
 import zoom from './zoom'
+import drag from './drag'
 
 export default class Network {
 
   _$graph = null
+  _$defs = null
   _$edgeContainer = null
+  _$edgeContainer2 = null
   _$nodeContainer = null
+  _$nodeContainer2 = null
 
   constructor(dom, options) {
     if (!dom) {
@@ -27,31 +44,14 @@ export default class Network {
     }
     this._prepareOptions(options)
     this._initDom(dom)
-    simulation.create((genTransform, tick) => {
-      if (tick) {
-        _.forEach(ds.nodes, node => {
-          const transform = genTransform(node)
-          select(`#${node.id}`).attr('transform', transform)
-        })
-      } else {
-        this._$nodeContainer2.selectAll('g').attr('transform', d => {
-          return genTransform(d)
-        })
-      }
-    }, (genPath, tick) => {
-      if (tick) {
-        _.forEach(ds.edges, edge => {
-          const path = genPath(edge)
-          select(`#${edge.id}`).attr('d', path)
-        })
-      } else {
-        this._$edgeContainer2.selectAll('path').attr('d', d => {
-          return genPath(d)
-        })
-      }
-    },
-      this._$graph
-    )
+    const updateNodes = updateNodesPosition(this._$nodeContainer, this._$nodeContainer2)
+    const updateEdges = updateEdgesPosition(this._$edgeContainer, this._$edgeContainer2)
+    simulation.create(updateNodes, updateEdges, this._$graph)
+    const updateView = d => {
+      updateNodes('drag', d)
+      updateEdges('drag', d)
+    }
+    drag.create(updateView, this._$zoomWrapper)
   }
 
   render({ nodes = [], edges = [] }) {
@@ -63,8 +63,8 @@ export default class Network {
     }
     ds.nodes = nodes
     ds.edges = edges
-    renderNodes(this._$nodeContainer, this._$nodeContainer2, ds.nodes)
-    renderEdges(this._$edgeContainer, this._$edgeContainer2, ds.edges)
+    renderNodes(this._$nodeContainer, this._$nodeContainer2)
+    renderEdges(this._$edgeContainer, this._$edgeContainer2)
     renderDefs(this._$defs)
     simulation.update(ds.nodes, ds.links)
   }
@@ -73,13 +73,32 @@ export default class Network {
     merge(options, opts)
   }
 
+  destroy() {
+    tooltip.destroy()
+    zoom.destroy()
+    simulation.destroy()
+    drag.destroy()
+    destroyNodes(this._$nodeContainer, this._$nodeContainer2)
+    destroyEdges(this._$edgeContainer, this._$edgeContainer2)
+    destroyDefs(this._$defs)
+    this._$graph = null
+    this._$defs = null
+    this._$edgeContainer = null
+    this._$edgeContainer2 = null
+    this._$nodeContainer = null
+    this._$nodeContainer2 = null
+    this._$zoomWrapper = null
+    this._opts = null
+    ds.clear()
+    eventer.emit('destroy')
+    eventer.destroy()
+  }
+
   _prepareOptions(opts) {
     merge(options, opts)
     // shadow
     options.node.shadow = merge({}, options.shadow, options.node.shadow)
     options.edge.shadow = merge({}, options.shadow, options.edge.shadow)
-    // options.node.tooltip = merge({}, options.tooltip, options.node.tooltip)
-    // options.edge.tooltip = merge({}, options.tooltip, options.edge.tooltip)
   }
 
   _initDom(dom) {
@@ -98,14 +117,14 @@ export default class Network {
     }))
     tooltip.create($container)
     appendHiddenDiv($container)
-    const $svgWraper = $container.append('div').call(bindStyle({
+    const $svgWrapper = $container.append('div').call(bindStyle({
       width: grid.width,
       height: grid.height || '500px',
       margin: `${grid.top} ${grid.right} ${grid.bottom} ${grid.left}`,
       position: 'relative',
       overflow: 'hidden',
     }))
-    this._$graph = $svgWraper.append('svg').call(bindStyle({
+    this._$graph = $svgWrapper.append('svg').call(bindStyle({
       width: '100%',
       height: '100%',
       'user-select': 'none',
@@ -113,11 +132,12 @@ export default class Network {
       class: 'network-topo',
     }))
     this._$defs = this._$graph.append('defs')
-    const $zoomWraper = this._$graph.append('g').attr('class', 'zoom-wraper')
-    this._$edgeContainer = $zoomWraper.append('g').attr('class', 'nt-edges')
-    this._$nodeContainer = $zoomWraper.append('g').attr('class', 'nt-nodes')
-    this._$edgeContainer2 = $zoomWraper.append('g').attr('class', 'nt-edges-cover')
-    this._$nodeContainer2 = $zoomWraper.append('g').attr('class', 'nt-nodes-cover')
-    zoom.create($svgWraper, this._$graph)
+    const $zoomWrapper = this._$graph.append('g').attr('class', 'zoom-wrapper')
+    this._$edgeContainer = $zoomWrapper.append('g').attr('class', 'nt-edges')
+    this._$nodeContainer = $zoomWrapper.append('g').attr('class', 'nt-nodes')
+    this._$edgeContainer2 = $zoomWrapper.append('g').attr('class', 'nt-edges-cover')
+    this._$nodeContainer2 = $zoomWrapper.append('g').attr('class', 'nt-nodes-cover')
+    this._$zoomWrapper = $zoomWrapper
+    zoom.create($svgWrapper, this._$graph, $zoomWrapper)
   }
 }

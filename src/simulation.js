@@ -6,13 +6,10 @@ import {
   forceCollide,
 } from 'd3-force'
 import options from './options'
+import eventer from './event'
 import {
   merge,
 } from './util'
-import thumbnails from './thumbnails'
-import {
-  genPath
-} from './edge/path'
 
 const dftOptions = {
   enable: false,
@@ -56,42 +53,17 @@ const dftOptions = {
 
 const dftUpdateView = function(updateNodes, updateEdges) {
   return tick => {
-    if (updateNodes) {
-      updateNodes(d => {
-        if (!d) {
-          throw new Error('data is required')
-        }
-        if (tick) {
-          const dx = d.x - d.position.x
-          const dy = d.y - d.position.y
-          d.position.x = d.x
-          d.position.y = d.y
-          d.linkPoint.x += dx
-          d.linkPoint.y += dy
-        }
-        return `translate(${d.position.x}, ${d.position.y})`
-      }, tick)
-    }
-    if (updateEdges) {
-      updateEdges(d => {
-        if (!d) {
-          throw new Error('data is required')
-        }
-        return genPath(d.id)
-      }, tick)
-    }
+    updateNodes(tick)
+    updateEdges(tick)
   }
 }
 
 const dftOnTick = function(updateView) {
-  return () => updateView(true)
+  return () => updateView('tick')
 }
 
 const dftOnEnd = function(updateView) {
-  return () => {
-    updateView(false)
-    thumbnails.update()
-  }
+  return () => updateView('end')
 }
 
 function set(target, options) {
@@ -132,19 +104,22 @@ class Simulation {
   }
 
   update(nodes, edges) {
-    this._setParams()
     if (this._opts.enable) {
+      eventer.emit('simulation.start')
+      this._setParams()
       this._simulater.nodes(nodes)
       this._force.link.links(edges)
     }
   }
 
   restart() {
+    eventer.emit('simulation.restart')
     this._simulater.restart()
   }
 
   stop() {
     this._simulater.stop()
+    eventer.emit('simulation.stop')
   }
 
   tick() {
@@ -161,6 +136,7 @@ class Simulation {
     this._updateNodes = null
     this._updateEdges = null
     this._opts = null
+    eventer.emit('simulation.destroy')
   }
 
   _setParams() {
@@ -186,16 +162,25 @@ class Simulation {
     this._simulater.on('tick', null).on('end', null)
     if (this._opts.enable) {
       const updateView = dftUpdateView(this._updateNodes, this._updateEdges)
-      const onTick = _.isFunction(this._opts.onTick) ?
-        this._opts.onTick :
-        dftOnTick(updateView)
-      const onEnd = _.isFunction(this._opts.onEnd) ?
-        this._opts.onEnd :
-        dftOnEnd(updateView)
-      this._simulater.on('tick', onTick).on('end', onEnd)
+      const onTick = dftOnTick(updateView)
+      const onEnd = dftOnEnd(updateView)
+      this._simulater.on('tick', () => {
+        if (_.isFunction(this._opts.onTick)) {
+          this._opts.onTick(onTick)
+        } else {
+          onTick()
+        }
+        eventer.emit('simulation.tick')
+      }).on('end', () => {
+        if (_.isFunction(this._opts.onEnd)) {
+          this._opts.onEnd(onEnd)
+        } else {
+          onEnd()
+        }
+        eventer.emit('simulation.end')
+      })
     }
   }
-
 }
 
 options.simulation = merge({}, dftOptions, options.simulation)

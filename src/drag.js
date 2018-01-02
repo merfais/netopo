@@ -5,34 +5,12 @@ import {
 import {
   drag
 } from 'd3-drag'
-import {
-  genPath
-} from './edge/path'
-import tooltip from './tooltip'
-import thumbnails from './thumbnails'
+import eventer from './event'
 import {
   bind,
 } from './util'
 
-function updateView(d, $root) {
-  d.position.x += event.dx
-  d.position.y += event.dy
-  d.linkPoint.x += event.dx
-  d.linkPoint.y += event.dy
-  const translate = `translate(${d.position.x}, ${d.position.y})`
-  $root = select($root)
-  $root.select(`#${d.id}`).attr('transform', translate)
-  $root.select(`#${d.id}_cover`).attr('transform', translate)
-  // eslint-disable-next-line no-underscore-dangle
-  _.forEach(d._edges, edge => {
-    const path = genPath(edge.id)
-    $root.select(`#${edge.id}`).attr('d', path)
-    $root.select(`#${edge.id}_cover`).attr('d', path)
-  })
-}
-
 function createVirtualNode(d, node) {
-  const $root = node.parentNode.parentNode.parentNode
   node = node.cloneNode(false)
   const $node = select(node).call(bind({
     attr: {
@@ -48,26 +26,29 @@ function createVirtualNode(d, node) {
       filter: null,
     }
   }))
-  $root.appendChild($node.node())
-  return $root
+  return $node.node()
 }
 
-function destroyVirtualNode($root) {
-  $root.removeChild(document.getElementById('dragger'))
-}
-
-function moveVirtualNode(d, $root) {
+function moveVirtualNode(d, $drager) {
   d.position.x += event.dx
   d.position.y += event.dy
   d.linkPoint.x += event.dx
   d.linkPoint.y += event.dy
   const translate = `translate(${d.position.x}, ${d.position.y})`
-  $root.querySelector('#dragger').setAttribute('transform', translate)
+  $drager.setAttribute('transform', translate)
 }
 
 class Drag {
   constructor(options) {
     this._opts = options
+    this._updateView = null
+    this._$root = null
+    this._drager = () => {}
+  }
+
+  create(updateView, $root) {
+    this._updateView = updateView
+    this._$root = $root
     this._drager = this._initDrag()
   }
 
@@ -80,19 +61,28 @@ class Drag {
   destroy() {
     this._drager.on('start', null).on('drag', null).on('end', null)
     this._opts = null
+    this._drager = null
+    this._$root = null
   }
 
   _initDrag() {
-    let $root
+    const $root = this._$root.node()
+    let $drager
     return drag().on('start', function(d) {
-      $root = createVirtualNode(d, this)
+      eventer.emit('drag.start', event, d)
+      $drager = createVirtualNode(d, this)
+      $root.appendChild($drager)
     }).on('drag', d => {
-      tooltip.hide()
-      moveVirtualNode(d, $root)
+      moveVirtualNode(d, $drager)
+      eventer.emit('drag.dragging', event, d)
     }).on('end', d => {
-      destroyVirtualNode($root)
-      updateView(d, $root)
-      thumbnails.update()
+      $root.removeChild($drager)
+      d.position.x += event.dx
+      d.position.y += event.dy
+      d.linkPoint.x += event.dx
+      d.linkPoint.y += event.dy
+      this._updateView(d)
+      eventer.emit('drag.end', event, d)
     })
   }
 }

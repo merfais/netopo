@@ -2,6 +2,7 @@ import {
   event as d3Event
 } from 'd3-selection'
 import options from './options'
+import eventer from './event'
 import {
   merge,
   bindStyle,
@@ -58,11 +59,15 @@ class Tooltip {
   constructor(options) {
     this._opts = options
     this._gap = 20
+    this._onDragStart = () => (this._opts.enable = false)
+    this._onDragEnd = () => (this._opts.enable = true)
   }
 
   create($viewer) {
     this._$viewer = $viewer
     this._$tip = $viewer.append('div').call(bindStyle(this._opts.style))
+    eventer.on('drag.start', this._onDragStart)
+    eventer.on('drag.end', this._onDragEnd)
   }
 
   show(html) {
@@ -71,23 +76,31 @@ class Tooltip {
   }
 
   update() {
-    const viewerRect = this._$viewer.node().getBoundingClientRect()
-    const tipRect = this._$tip.node().getBoundingClientRect()
-    const { left, top } = updatePosition(viewerRect, tipRect, this._gap)
-    this._$tip.call(bindStyle({
-      left,
-      top,
-      display: 'block',
-    }))
+    if (this._opts.enable) {
+      eventer.emit('tooltip.show')
+      const viewerRect = this._$viewer.node().getBoundingClientRect()
+      const tipRect = this._$tip.node().getBoundingClientRect()
+      const { left, top } = updatePosition(viewerRect, tipRect, this._gap)
+      this._$tip.call(bindStyle({
+        left,
+        top,
+        display: 'block',
+      }))
+      eventer.emit('tooltip.update')
+    }
   }
 
   hide() {
     this._$tip.style('display', 'none')
+    eventer.emit('tooltip.hide')
   }
 
   destroy() {
     this._$tip.remove()
     this._opts = null
+    eventer.off('drag.start', this._onDragStart)
+    eventer.off('drag.end', this._onDragEnd)
+    eventer.emit('tooltip.destroy')
   }
 }
 

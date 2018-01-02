@@ -11,7 +11,17 @@ const eventer = {
   },
   // 外部释放事件
   off(name, handler) {
-    // TODO
+    const handlers = eventMap.get(name)
+    if (handlers) {
+      let i = 0
+      while (i < handlers.length) {
+        if (handler === handlers[i]) {
+          handlers.slice(i, 1)
+          break;
+        }
+        i += 1
+      }
+    }
   },
   // 对外派发事件，触发外部 on 注册的事件回调
   emit(name, ...paramters) {
@@ -38,6 +48,9 @@ const eventer = {
         $selector.on(name, null)
       })
     }
+  },
+  destroy() {
+    eventMap.clear()
   }
 }
 

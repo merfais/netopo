@@ -31,10 +31,8 @@ export function genPath(edge) {
   if (typeof edge === 'string') {
     edge = ds.edgeMap.get(edge) || {}
   }
-  const sourceId = _.isObject(edge.source) ? edge.source.id : edge.source
-  const targetId = _.isObject(edge.target) ? edge.target.id : edge.target
-  const { x: x1, y: y1 } = ds.nodeMap.get(sourceId).linkPoint
-  const { x: x2, y: y2 } = ds.nodeMap.get(targetId).linkPoint
+  const { x: x1, y: y1 } = ds.nodeMap.get(edge.source).linkPoint
+  const { x: x2, y: y2 } = ds.nodeMap.get(edge.target).linkPoint
   return draw(shape[edge.type], x1, y1, x2, y2)
 }
 

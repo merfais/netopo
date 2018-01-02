@@ -34,7 +34,7 @@ const subscribers = {
           }
           tooltip.show(formatter(d))
         }
-        eventer.emit('hover', d)
+        eventer.emit('node.hover', d)
       },
       mouseleave(d) {
         const $shape = $parent
@@ -66,6 +66,7 @@ const subscribers = {
           }
           tooltip.show(formatter(d))
         }
+        eventer.emit('edge.hover', d)
       },
       mouseleave(d) {
         $parent
@@ -85,7 +86,6 @@ const subscribers = {
     return {
       mouseenter(d) {
         $parent
-          .select(`#${d.id}`)
           .select('div')
           .call(bind(d.label.hover))
         if (d.tooltip.enable) {
@@ -95,11 +95,10 @@ const subscribers = {
           }
           tooltip.show(formatter(d))
         }
-        eventer.emit('hover', d)
+        eventer.emit('label.hover', d)
       },
       mouseleave(d) {
         $parent
-          .select(`#${d.id}`)
           .select('div')
           .call(bindStyle(d.label.style))
           .call(bindClass(d.label.class))
@@ -118,7 +117,7 @@ const subscribers = {
         $parent.select('.thumbnails')
           .transition()
           .call(bindStyle(d.hover))
-        eventer.emit('hover', d)
+        eventer.emit('thumbnails.hover', d)
       },
       mouseleave(d) {
         $parent.select('.thumbnails')
@@ -130,16 +129,23 @@ const subscribers = {
       },
     }
   },
+  default() {
+    return {
+      mouseenter() {},
+      mousemove() {},
+      mouseleave() {},
+    }
+  }
 }
 
 export function unBindHover(type) {
-  const subscriber = subscribers[type]
+  const subscriber = type ? subscribers[type] : subscribers.default
   if (subscriber) {
-    throw new Error('event subscriber not defined')
+    return eventer.unBind(subscriber())
   }
-  return eventer.unBind(subscriber())
 }
-export default function bindHover($parent, type) {
+
+export function bindHover($parent, type) {
   const subscriber = subscribers[type]
   if (!subscriber) {
     throw new Error('event subscriber not defined')

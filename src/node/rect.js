@@ -43,10 +43,6 @@ const dftOptions = {
       'font-size': '14px',
       'box-sizing': 'border-box',
     },
-    hover: {
-      style: {},
-      class: '',
-    }
   }
 }
 

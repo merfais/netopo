@@ -2,9 +2,13 @@ import {
   select,
   namespaces,
 } from 'd3-selection'
+import ds from '../dataSet'
 import options from '../options'
 import drag from '../drag'
-import bindHover from '../hover'
+import {
+  bindHover,
+  unBindHover,
+} from '../hover'
 import {
   bind,
   bindStyle,
@@ -24,7 +28,6 @@ const dftOptions = {
     enable: false,
   },
   tooltip: {
-    _type: 'node',
     enable: true,
   }
 }
@@ -122,13 +125,42 @@ export function calcLabelHeight(label) {
   return $labelDivWrapper.node().clientHeight
 }
 
-export default function render($container, $container2, nodes) {
+export function updateNodesPosition($container, $container2) {
+  return (type, d) => {
+    if (type === 'tick') {
+      _.forEach(ds.nodes, d => {
+        d.linkPoint.x += d.x - d.position.x
+        d.linkPoint.y += d.y - d.position.y
+        d.position.x = d.x
+        d.position.y = d.y
+        const transform = `translate(${d.position.x}, ${d.position.y})`
+        $container.select(`#${d.id}`).attr('transform', transform)
+      })
+    } else if (type === 'end') {
+      $container2.selectAll('g').attr('transform', d => {
+        if (!_.has(d, 'position')) {
+          throw new Error('data.position is required')
+        }
+        return `translate(${d.position.x}, ${d.position.y})`
+      })
+    } else if (type === 'drag') {
+      if (!_.has(d, 'position')) {
+        throw new Error('data.position is required')
+      }
+      const translate = `translate(${d.position.x}, ${d.position.y})`
+      $container.select(`#${d.id}`).attr('transform', translate)
+      $container2.select(`#${d.id}_cover`).attr('transform', translate)
+    }
+  }
+}
+
+export function renderNodes($container, $container2) {
   const nodeOpts = merge({}, dftOptions, options.node)
   // eslint-disable-next-line no-underscore-dangle
-  let $nodes = $container.selectAll('g').data(nodes, d => d._id)
+  let $nodes = $container.selectAll('g').data(ds.nodes, d => d._id)
   $nodes.exit().remove()
   // eslint-disable-next-line no-underscore-dangle
-  const $nodes2 = $container2.selectAll('g').data(nodes, d => d._id)
+  const $nodes2 = $container2.selectAll('g').data(ds.nodes, d => d._id)
   $nodes2.exit().remove()
   $nodes2.enter().append(d => {
     if (!_.has(d, 'shape')) {
@@ -147,4 +179,12 @@ export default function render($container, $container2, nodes) {
     $container.append(() => $node.node())
     return $node2.node()
   })
+}
+
+export function destroyNodes($container, $container2) {
+  $container2.selectAll('g').property('_destroy', function() {
+    select(this.firstChild).call(unBindHover())
+  })
+  $container2.remove()
+  $container.remove()
 }

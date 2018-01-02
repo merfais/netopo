@@ -5,6 +5,7 @@ import {
   event
 } from 'd3-selection'
 import options from './options'
+import eventer from './event'
 import {
   merge,
   parseTranform,
@@ -33,45 +34,50 @@ class Zoom {
   constructor(options) {
     this._opts = options
     this._zoomer = zoom()
-    this._$wraper = null
+    this._$wrapper = null
     this._$subscriber = null
   }
 
-  create($root, $subscriber) {
+  create($root, $subscriber, $zoomWrapper) {
     thumbnails.create($root, $subscriber)
     this._$subscriber = $subscriber
-    this._$wraper = $subscriber.select('.zoom-wraper')
+    this._$wrapper = $zoomWrapper
+    eventer.emit('zoom.create')
     this.update()
   }
 
   update() {
     if (this._opts.enable) {
       this._bindParams()
-      let wraperTransform = {}
+      let wrapperTransform = {}
       this._zoomer.on('start', () => {
-        wraperTransform = parseTranform(this._$wraper.attr('transform'))
+        wrapperTransform = parseTranform(this._$wrapper.attr('transform'))
+        eventer.emit('zoom.start', wrapperTransform)
       }).on('zoom', () => {
         if (this._opts.useThumbnails) {
           if (event.sourceEvent.type === 'mousemove') {
-            wraperTransform.x = event.transform.x
-            wraperTransform.y = event.transform.y
-            const { x, y, k } = wraperTransform
-            this._$wraper.attr('transform', `translate(${x}, ${y}) scale(${k})`)
-            thumbnails.updateBrushPositon(wraperTransform)
+            wrapperTransform.x = event.transform.x
+            wrapperTransform.y = event.transform.y
+            const { x, y, k } = wrapperTransform
+            this._$wrapper.attr('transform', `translate(${x}, ${y}) scale(${k})`)
+            thumbnails.updateBrushPositon(wrapperTransform)
           }
         } else {
-          this._$wraper.attr('transform', event.transform)
+          this._$wrapper.attr('transform', event.transform)
         }
+        eventer.emit('zoom.zooming', event)
       })
     }
     this._$subscriber.call(this._zoomer)
+    eventer.emit('zoom.update')
   }
 
   destroy() {
     this._zoomer.on('start', null).on('zoom', null)
     this._zoomer = null
-    this._$wraper = null
+    this._$wrapper = null
     this._opts = null
+    eventer.emit('zoom.destroy')
   }
 
   _bindParams() {

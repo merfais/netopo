@@ -128,6 +128,14 @@ class DataSet {
   get edgeMap() {
     return this._edges
   }
+
+  clear() {
+    this._nodes.clear()
+    this._edges.clear()
+    this._rawNodes.clear()
+    this._rawEdges.clear()
+    this._links.clear()
+  }
 }
 
 export default new DataSet()
