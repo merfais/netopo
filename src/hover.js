@@ -1,7 +1,8 @@
 import {
   bind,
   bindStyle,
-  bindClass,
+  merge,
+  setNull,
 } from './util'
 import ds from './dataSet'
 import tooltip from './tooltip'
@@ -18,6 +19,10 @@ const dftTooltipFormatter = {
     target = target ? target.label.text : d.target
     return `${source} -> ${target}: ${d.value}`
   }
+}
+
+function rollbackProp(hover, normal) {
+  return merge(setNull(hover), normal)
 }
 
 const subscribers = {
@@ -37,10 +42,13 @@ const subscribers = {
         eventer.emit('node.hover', d)
       },
       mouseleave(d) {
+        const prop = rollbackProp(d.shape.hover, {
+          style: d.shape.style,
+          class: d.shape.class,
+        })
         const $shape = $parent
           .select(`#${d.id}_shape`)
-          .call(bindStyle(d.shape.style))
-          .call(bindClass(d.shape.class))
+          .call(bind(prop))
         if (d.shape.type === 'image') {
           $shape.attr('href', d.shape.href)
         }
@@ -69,10 +77,13 @@ const subscribers = {
         eventer.emit('edge.hover', d)
       },
       mouseleave(d) {
+        const prop = rollbackProp(d.path.hover, {
+          style: d.path.style,
+          class: d.path.class,
+        })
         $parent
           .select(`#${d.id}`)
-          .call(bindStyle(d.path.style))
-          .call(bindClass(d.path.class))
+          .call(bind(prop))
         tooltip.hide()
       },
       mousemove(d) {
@@ -98,10 +109,13 @@ const subscribers = {
         eventer.emit('label.hover', d)
       },
       mouseleave(d) {
+        const prop = rollbackProp(d.label.hover, {
+          style: d.label.style,
+          class: d.label.class,
+        })
         $parent
           .select('div')
-          .call(bindStyle(d.label.style))
-          .call(bindClass(d.label.class))
+          .call(bind(prop))
         tooltip.hide()
       },
       mousemove(d) {
@@ -111,7 +125,7 @@ const subscribers = {
       },
     }
   },
-  thumbnails($parent) {
+  thumbnails($parent, enable) {
     return {
       mouseenter(d) {
         $parent.select('.thumbnails')
@@ -145,10 +159,10 @@ export function unBindHover(type) {
   }
 }
 
-export function bindHover($parent, type) {
+export function bindHover(type, ...args) {
   const subscriber = subscribers[type]
   if (!subscriber) {
     throw new Error('event subscriber not defined')
   }
-  return eventer.bind(subscriber($parent))
+  return eventer.bind(subscriber(...args))
 }

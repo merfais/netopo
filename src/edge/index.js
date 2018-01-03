@@ -1,7 +1,6 @@
 import {
   select,
   namespaces,
-  // event,
 } from 'd3-selection'
 import options from '../options'
 import ds from '../dataSet'
@@ -17,15 +16,14 @@ import {
   genPath,
   shapes,
 } from './path.js'
-import genShadowFilter from '../defs/shadow'
+import shadow from '../defs/shadow'
 
 const dftOptions = {
   arrow: {}, // 暂不支持
   shadow: {
-    enable: false,
+    enable: false,  // edge shadow有非常大的性能问题，慎用
   },
   tooltip: {
-    _type: 'edge',
     enable: true,
   },
   path: {
@@ -49,8 +47,9 @@ const dftOptions = {
 function prepareProp(d) {
   if (d.shadow.enable !== false) {
     // FIXME: 开启filter会有性能问题
-    const shadow = genShadowFilter(d.shadow)
+    shadow.create(d.shadow)
     d.path.style.filter = shadow.styleFilter
+    d.path.hover.style.filter = shadow.hoverFilter
   }
   const attr = { ...d.path }
   attr.id = d.id
@@ -80,7 +79,7 @@ function renderEdge(d, $parent) {
   const $edge = select(document.createElementNS(namespaces.svg, 'path'))
   $edge.call(bind(prop))
   const $edge2 = select(document.createElementNS(namespaces.svg, 'path'))
-  $edge2.call(bind(prop2)).call(bindHover($parent, 'edge'))
+  $edge2.call(bind(prop2)).call(bindHover('edge', $parent))
   return {
     $edge,
     $edge2,

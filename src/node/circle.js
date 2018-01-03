@@ -14,7 +14,7 @@ const dftOptions = {
       cursor: 'pointer',
       stroke: '#666',
       'stroke-width': 0.8,
-      fill: 'e8e8e8',
+      fill: '#e8e8e8',
     },
     class: '',
     hover: {

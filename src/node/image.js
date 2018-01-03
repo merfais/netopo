@@ -13,11 +13,12 @@ const dftOptions = {
     height: 30,
     style: {
       cursor: 'pointer',
-      fill: 'e8e8e8',
+      fill: '#e8e8e8',
     },
     class: '',
     hover: {
       style: {
+        filter: 'url(#brighter)'
       },
       class: '',
     },

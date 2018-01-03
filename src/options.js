@@ -15,20 +15,8 @@ const options = {
     path: {},
     shadow: {},
   },
-  // 开启filter式的shadow有性能问题
   shadow: {
-    style: {
-      offsetX: 2,
-      offsetY: 2,
-      blur: 3,
-      color: 'rgba(0,0,0,.3)',
-    },
-    hover: {
-      offsetX: 2,
-      offsetY: 2,
-      blur: 3,
-      color: 'rgba(0,0,0,.5)',
-    },
+    // normal, hover
   },
   tooltip: {
     // style

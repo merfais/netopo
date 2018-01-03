@@ -46,8 +46,11 @@ class Drag {
     this._drager = () => {}
   }
 
-  create(updateView, $root) {
-    this._updateView = updateView
+  create(updateNodes, updateEdges, $root) {
+    this._updateView = d => {
+      updateNodes('drag', d)
+      updateEdges('drag', d)
+    }
     this._$root = $root
     this._drager = this._initDrag()
   }

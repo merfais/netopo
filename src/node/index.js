@@ -43,7 +43,7 @@ function renderShape($node, $node2) {
         .data([d]).enter()
         .append(prop2.type)
         .call(bind(prop2))
-        .call(bindHover($node, d.shape.type === 'text' ? 'label' : 'node'))
+        .call(bindHover(d.shape.type === 'text' ? 'label' : 'node', $node))
         .call(drag.bind(d.drag.enable))
     }
   }

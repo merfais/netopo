@@ -19,7 +19,7 @@ import {
   merge,
   bindStyle,
   pixeled,
-  getInverseRect,
+  getSvgRect,
 } from './util'
 
 const dftOptions = {
@@ -63,14 +63,14 @@ const dftOptions = {
   }
 }
 
-function genImg(viewBox, svg) {
-  svg.setAttribute('viewBox', _.values(viewBox).join(' '))
+function genImg(rect, svg) {
+  const viewBox = `${rect.left} ${rect.top} ${rect.width} ${rect.height}`
+  svg.setAttribute('viewBox', viewBox)
   const s = new XMLSerializer().serializeToString(svg)
   return 'data:image/svg+xml;base64,' + Base64.encode(s)
 }
 
 class Thumbnails {
-
   constructor(options) {
     this._$thumbnails = null
     this._$graph = null
@@ -80,17 +80,17 @@ class Thumbnails {
     this._zoomer = this._initZoom()
     this._drager = this._initDrag()
     this._graphRect = null        // 可视区域
-    this._wrapperRect = null       // 图像区域
+    this._wrapperRect = null      // 图像区域
     this._brushRect = null        // brush区域，= 可视区域
     this._brushBaseRect = null    // 用于计算缩放后的brush大小
     this._brushBoundary = 20      // 防止brush被拖出可视区
     this._brushMaxScale = 0.95    // brush最大缩放系数，占缩略图比例，防止brush完全溢出缩略图区域
-    this._wrapperTransform = {     // 缓存wrapper的transform属性，每次读取DOM由于性能问题出现延时则会计算错误
+    this._wrapperTransform = {    // 缓存wrapper的transform属性，每次读取DOM由于性能问题出现延时则会计算错误
       x: 0,
       y: 0,
       k: 1,
     }
-    this._onUpdate = () => this.update()
+    this._onUpdate = () => this.update() // drag or simulation end event handler
   }
 
   /**
@@ -114,7 +114,7 @@ class Thumbnails {
     this._$thumbnails
       .call(bindStyle(this._opts.style))
       .call(this._zoomer)
-      .call(bindHover($parent, 'thumbnails'))
+      .call(bindHover('thumbnails', $parent))
       .on('wheel', () => {
         event.stopPropagation()
         event.preventDefault()
@@ -134,20 +134,18 @@ class Thumbnails {
    */
   update() {
     if (this._opts.enable) {
-      this._graphRect = getInverseRect(this._$graph.node())
+      this._graphRect = getSvgRect(this._$graph.node())
       // 图像偏移后重新生成缩略图需要考虑偏移量
-      this._wrapperRect = getInverseRect(this._$wrapper.node(), this._wrapperTransform)
+      // scale = 1.1 原始图放大10%为了生成缩略图时留出边白区域，而不是完全填充
+      this._wrapperRect = getSvgRect(this._$wrapper.node(), this._wrapperTransform, 1.1)
       // 缩略图需要使用svg的viewBox属性缩放后生成
       const left = Math.min(0, this._wrapperRect.left)
       const top = Math.min(0, this._wrapperRect.top)
       const right = Math.max(this._graphRect.right, this._wrapperRect.right)
       const bottom = Math.max(this._graphRect.bottom, this._wrapperRect.bottom)
-      const viewBox = {
-        x: left,
-        y: top,
-        width: right - left,
-        height: bottom - top,
-      }
+      const width = right - left
+      const height = bottom - top
+      let viewBox = { left, top, width, height }
       // 图拖拽发生变化后重新生成缩略图，需要在原来缩放的基础上重新计算scale
       if (this._brushRect) {
         this._opts.scale = this._brushRect.width / this._graphRect.width
@@ -319,7 +317,6 @@ class Thumbnails {
       }
     })
   }
-
 }
 
 options.thumbnails = merge({}, dftOptions, options.thumbnails)

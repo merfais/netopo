@@ -2,22 +2,52 @@ import {
   select,
   namespaces,
 } from 'd3-selection'
+import options from '../options'
 import {
   bindAttr,
+  merge,
 } from '../util.js'
+import {
+  brighterFilter,
+  darkerFilter,
+} from './color'
+
+const dftOptions = {
+  brighter: {
+    value: 1,
+  },
+  darker: {
+    value: 1
+  },
+  custom: {}
+}
 
 function renderFilter($filter, data) {
   $filter.call(bindAttr(data.attr))
   _.forEach(data.subNodes, item => {
-    const $subNode = $filter.append(item.name)
-    renderFilter($subNode, item)
+    if (item.name) {
+      const $subNode = $filter.append(item.name)
+      renderFilter($subNode, item)
+    }
   })
 }
 
 class Filter {
-  constructor() {
+  constructor(options) {
     this._filter = new Map()
     this._last = new Map()
+
+    _.forEach(options.custom, (filter, key) => {
+      if (!_.has(filter, 'attr')) {
+        filter.attr = {}
+      }
+      if (!_.has(filter.attr, 'id')) {
+        filter.attr.id = key
+      }
+      this.use(filter)
+    })
+    this.use(darkerFilter(options.darker.value))
+    this.use(brighterFilter(options.brighter.value))
   }
 
   get data() {
@@ -30,11 +60,47 @@ class Filter {
     return [...this._last.values()]
   }
 
-  insert(data) {
-    if (!this._last.has(data.id)) {
-      this._filter.set(data.id, data)
+  /**
+   * 插入filter的描述对象
+   *
+   * @name use
+   * @function
+   * @param {object} filter 描述对象
+   *
+   * {
+   *   // name: 顶级无name属性，用于filter便签
+   *   attr: {
+   *     id: d.id,
+   *     width: '200%',
+   *     height: '200%',
+   *     x: '-50%',
+   *     y: '-50%',
+   *   },
+   *   subNodes: [{
+   *     name: 'feDropShadow',
+   *     attr: {
+   *       dx: d.offsetX,
+   *       dy: d.offsetY,
+   *       stdDeviation: d.blur,
+   *       'flood-color': d.color
+   *     }
+   *     subNodes: [{
+   *
+   *     }]
+   *   }, {
+   *
+   *   }]
+   * }
+   *
+   */
+  use(filter) {
+    if (!_.has(filter, 'attr') || !_.has(filter.attr, 'id')) {
+      throw new Error('filter.attr.id is required')
+    }
+    if (!this._last.has(filter.attr.id)) {
+      this._filter.set(filter.attr.id, filter)
     } else {
-      this._filter.set(data.id, this._last.get(data.id))
+      this._filter.set(filter.attr.id, this._last.get(filter.id))
     }
   }
 
@@ -44,7 +110,8 @@ class Filter {
   }
 }
 
-export const filter = new Filter()
+options.filter = merge({}, dftOptions, options.filter)
+const filter = new Filter(options.filter)
 
 export function renderDefs($defs) {
   if (filter.data.length) {
@@ -52,7 +119,7 @@ export function renderDefs($defs) {
     $filters.exit().remove()
     $filters.enter().append(d => {
       const $filter = select(document.createElementNS(namespaces.svg, 'filter'))
-      renderFilter($filter, d.genData(d))
+      renderFilter($filter, d)
       return $filter.node()
     })
   }
@@ -60,49 +127,8 @@ export function renderDefs($defs) {
 }
 
 export function destroyDefs($defs) {
+  filter.clear()
   $defs.remove()
 }
 
-/*
-const filter = {
-  id: d.id,
-  width: '200%',
-  height: '200%',
-  x: '-50%',
-  y: '-50%',
-  subNodes: [{
-    name: '',
-    in: 'SourceAlpha',
-    stdDeviation: d.blur
-  }]
-}
-
-function renderFilter($filter, d) {
-  $filter.call(bindAttr({
-    id: d.id,
-    width: '200%',
-    height: '200%',
-    x: '-50%',
-    y: '-50%'
-  }))
-  $filter.append('feGaussianBlur').call(bindAttr({
-    in: 'SourceAlpha',
-    stdDeviation: d.blur
-  }))
-  $filter.append('feOffset').call(bindAttr({
-    dx: d.offsetX,
-    dy: d.offsetY,
-    result: 'offset'
-  }))
-  $filter.append('feFlood').call(bindAttr({
-    'flood-color': d.color
-  }))
-  $filter.append('feComposite').call(bindAttr({
-    in2: 'offset'
-    operator: 'in'
-  }))
-  const $feMerge = $filter.append('feMerge')
-  $feMerge.append('feMergeNode')
-  $feMerge.append('feMergeNode').attr('in', 'SourceGraphic')
-}
-*/
+export default filter

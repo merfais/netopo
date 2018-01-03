@@ -2,14 +2,16 @@ import rect from './rect'
 import circle from './circle'
 import image from './image'
 import label from './text'
-import genShadowFilter from '../defs/shadow'
+import shadow from '../defs/shadow'
 
 function genShapeProp(d) {
   // 阴影
   if (d.shadow.enable !== false) {
-    const shadow = genShadowFilter(d.shadow)
+    shadow.create(d.shadow)
     d.shape.style.filter = shadow.styleFilter
-    d.shape.hover.style.filter = shadow.hoverFilter
+    if (_.isObject(d.shape.hover) && _.isObject(d.shape.hover.style)) {
+      d.shape.hover.style.filter = shadow.hoverFilter
+    }
   }
   const attr = { ...d.shape }
   attr.id = `${d.id}_shape`

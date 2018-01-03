@@ -1,3 +1,17 @@
+/**
+ * 生成UUID
+ *
+ * @name uuid
+ * @function
+ * @returns {string} UUID
+ */
+export function uuid() {
+  let S4 = function() {
+    return (((1 + Math.random()) * 0x10000) | 0).toString(16).substring(1)
+  }
+  return `${S4()}${S4()}-${S4()}-${S4()}-${S4()}-${S4()}${S4()}${S4()}`
+}
+
 function perMerge(target, source) {
   if (source === undefined) {
     return
@@ -12,22 +26,6 @@ function perMerge(target, source) {
       } else {
         target[key] = item
       }
-      /*
-      if (_.isPlainObject(target[key])) {
-        if (_.isPlainObject(item)) {
-          perMerge(target[key], item)
-        } else {
-          target[key] = item
-        }
-      } else {
-        if (_.isPlainObject(item)) {
-          target[key] = {}
-          perMerge(target[key], item)
-        } else {
-          target[key] = item
-        }
-      }
-      */
     })
   } else {
     target = source
@@ -41,6 +39,18 @@ export function merge(...params) {
     i += 1
   }
   return params[0]
+}
+
+export function setNull(target) {
+  let rtn = {}
+  _.forEach(target, (item, key) => {
+    if (_.isObject(item)) {
+      rtn[key] = setNull(item)
+    } else {
+      rtn[key] = null
+    }
+  })
+  return rtn
 }
 
 export function exportFn(module, keys) {
@@ -142,7 +152,7 @@ export function parseTranform(transform) {
   return { x, y, k }
 }
 
-export function getInverseRect(svgEl, transform) {
+export function getSvgRect(svgEl, transform, scale = 1) {
   // svg元素无offset属性，无法直接获取相对位置
   // 通过转化屏幕坐标系获取相对位置
   // 参考 https://stackoverflow.com/questions/26049488/how-to-get-absolute-coordinates-of-object-inside-a-g-group
@@ -153,6 +163,12 @@ export function getInverseRect(svgEl, transform) {
   if (transform) {
     rect.x = rect.x * transform.k + transform.x
     rect.y = rect.y * transform.k + transform.y
+  }
+  if (scale !== 1) {
+    rect.x -= rect.width * (scale - 1) / 2
+    rect.y -= rect.height * (scale - 1) / 2
+    rect.width *= scale
+    rect.height *= scale
   }
   // getBoundingClientRect 返回的是DOMRect类型，
   // 为方便操作转换成Object类型
@@ -168,18 +184,25 @@ export function getInverseRect(svgEl, transform) {
   }
 }
 
-/**
- * 生成UUID
- *
- * @name uuid
- * @function
- * @returns {string} UUID
- */
-export function uuid() {
-  let S4 = function() {
-    return (((1 + Math.random()) * 0x10000) | 0).toString(16).substring(1)
+let running = false
+let throttleFunc = function() {
+  if (running) {
+    return
   }
-  return `${S4()}${S4()}-${S4()}-${S4()}-${S4()}-${S4()}${S4()}${S4()}`
+  running = true
+  requestAnimationFrame(() => {
+    window.dispatchEvent(new CustomEvent('optimizedResize'))
+    running = false
+  })
+}
+export function onRezie(handler) {
+  window.addEventListener('resize', throttleFunc)
+  window.addEventListener('optimizedResize', handler)
+}
+
+export function offResize(handler) {
+  window.removeEventListener('resize', throttleFunc)
+  window.removeEventListener('optimizedResize', handler)
 }
 
 /*

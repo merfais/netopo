@@ -5,6 +5,8 @@ import {
   bindStyle,
   bindAttr,
   merge,
+  onRezie,
+  offResize,
 } from './util'
 import ds from './dataSet'
 import options from './options'
@@ -29,6 +31,34 @@ import simulation from './simulation'
 import zoom from './zoom'
 import drag from './drag'
 
+function createSvgWrapper(dom) {
+  if (typeof dom === 'string') {
+    dom = document.getElementById(dom)
+  }
+  if (!dom.getBoundingClientRect) {
+    throw new Error('real DOM instance or an exist DOM id is required')
+  }
+  const $container = select(dom).append('div').call(bindStyle({
+    position: 'relative',
+    width: '100%',
+    height: '100%',
+  }))
+  tooltip.create($container)
+  appendHiddenDiv($container)
+  const grid = merge({
+    width: dom.clientWidth + 'px',
+    height: dom.clientHeight + 'px',
+  }, options.grid)
+  const $svgWrapper = $container.append('div').call(bindStyle({
+    width: grid.width,
+    height: grid.height || '500px',
+    margin: `${grid.top} ${grid.right} ${grid.bottom} ${grid.left}`,
+    position: 'relative',
+    overflow: 'hidden',
+  }))
+  return $svgWrapper
+}
+
 export default class Network {
 
   _$graph = null
@@ -38,20 +68,19 @@ export default class Network {
   _$nodeContainer = null
   _$nodeContainer2 = null
 
-  constructor(dom, options) {
+  constructor(dom, opts) {
     if (!dom) {
       throw new Error('dom paramter is required')
     }
-    this._prepareOptions(options)
-    this._initDom(dom)
+    merge(options, opts)
+    const $svgWrapper = createSvgWrapper(dom)
+    this._createSvg($svgWrapper)
+    this._onResize = this._resizeHandler()
+    onRezie(this._onResize)
     const updateNodes = updateNodesPosition(this._$nodeContainer, this._$nodeContainer2)
     const updateEdges = updateEdgesPosition(this._$edgeContainer, this._$edgeContainer2)
     simulation.create(updateNodes, updateEdges, this._$graph)
-    const updateView = d => {
-      updateNodes('drag', d)
-      updateEdges('drag', d)
-    }
-    drag.create(updateView, this._$zoomWrapper)
+    drag.create(updateNodes, updateEdges, this._$zoomWrapper)
   }
 
   render({ nodes = [], edges = [] }) {
@@ -89,41 +118,13 @@ export default class Network {
     this._$nodeContainer2 = null
     this._$zoomWrapper = null
     this._opts = null
+    offResize(this._onResize)
     ds.clear()
     eventer.emit('destroy')
     eventer.destroy()
   }
 
-  _prepareOptions(opts) {
-    merge(options, opts)
-    // shadow
-    options.node.shadow = merge({}, options.shadow, options.node.shadow)
-    options.edge.shadow = merge({}, options.shadow, options.edge.shadow)
-  }
-
-  _initDom(dom) {
-    if (typeof dom === 'string') {
-      dom = document.getElementById(dom)
-    }
-    if (!dom.getBoundingClientRect) {
-      throw new Error('real DOM instance or an exist DOM id is required')
-    }
-    const grid = merge({
-      width: dom.clientWidth + 'px',
-      height: dom.clientHeight + 'px',
-    }, options.grid)
-    const $container = select(dom).append('div').call(bindStyle({
-      position: 'relative',
-    }))
-    tooltip.create($container)
-    appendHiddenDiv($container)
-    const $svgWrapper = $container.append('div').call(bindStyle({
-      width: grid.width,
-      height: grid.height || '500px',
-      margin: `${grid.top} ${grid.right} ${grid.bottom} ${grid.left}`,
-      position: 'relative',
-      overflow: 'hidden',
-    }))
+  _createSvg($svgWrapper) {
     this._$graph = $svgWrapper.append('svg').call(bindStyle({
       width: '100%',
       height: '100%',
@@ -139,5 +140,11 @@ export default class Network {
     this._$nodeContainer2 = $zoomWrapper.append('g').attr('class', 'nt-nodes-cover')
     this._$zoomWrapper = $zoomWrapper
     zoom.create($svgWrapper, this._$graph, $zoomWrapper)
+  }
+
+  _resizeHandler() {
+    return () => {
+      console.log('resize')
+    }
   }
 }

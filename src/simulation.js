@@ -52,9 +52,9 @@ const dftOptions = {
 }
 
 const dftUpdateView = function(updateNodes, updateEdges) {
-  return tick => {
-    updateNodes(tick)
-    updateEdges(tick)
+  return type => {
+    updateNodes(type)
+    updateEdges(type)
   }
 }
 
@@ -161,6 +161,9 @@ class Simulation {
     })
     this._simulater.on('tick', null).on('end', null)
     if (this._opts.enable) {
+      // filter 会影响 simulation 效率，所以开始simulation前去掉所有的filter
+      // 结束后再添加回来
+      const $filters = this._$viewer.selectAll('filter').remove()
       const updateView = dftUpdateView(this._updateNodes, this._updateEdges)
       const onTick = dftOnTick(updateView)
       const onEnd = dftOnEnd(updateView)
@@ -177,6 +180,10 @@ class Simulation {
         } else {
           onEnd()
         }
+        // 将删除的filter添加回DOM
+        $filters.nodes().forEach(node => {
+          this._$viewer.select('defs').append(() => node)
+        })
         eventer.emit('simulation.end')
       })
     }
