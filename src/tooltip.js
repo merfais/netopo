@@ -1,6 +1,7 @@
 import {
   event as d3Event
 } from 'd3-selection'
+import ds from './dataSet'
 import options from './options'
 import eventer from './event'
 import {
@@ -29,6 +30,22 @@ const dftOptions = {
   },
 }
 
+const dftFormatter = type => {
+  if (type === 'node') {
+    return d => `${d.label.text}: ${d.value}`
+  } else if (type === 'edge') {
+    return d => {
+      let source = ds.nodeMap.get(d.source)
+      source = source ? source.label.text : d.source
+      let target = ds.nodeMap.get(d.target)
+      target = target ? target.label.text : d.target
+      return `${source} -> ${target}: ${d.value}`
+    }
+  } else {
+    return d => `${d.value}`
+  }
+}
+
 function updatePosition(viewerRect, tipRect, gap) {
   let left = d3Event.offsetX + gap
   // 如果越过右侧边界，则在鼠标左侧显示
@@ -55,7 +72,6 @@ function updatePosition(viewerRect, tipRect, gap) {
 }
 
 class Tooltip {
-
   constructor(options) {
     this._opts = options
     this._gap = 20
@@ -70,14 +86,34 @@ class Tooltip {
     eventer.on('drag.end', this._onDragEnd)
   }
 
-  show(html) {
-    this._$tip.html(html)
-    this.update()
+  show(d) {
+    if (!_.isObject(d)) {
+      throw new Error('d is required when use tooltip')
+    }
+    d.tooltip = d.tooltip || {}
+    this._enable = d.tooltip.enable
+    if (this._enable) {
+      eventer.emit('tooltip.show')
+      const type = _.has(d, 'shape') ? 'node' : 'edge'
+      let formatter = dftFormatter(type)
+      if (_.isFunction(d.tooltip.formatter)) {
+        formatter = d.tooltip.formatter
+      }
+      const html = formatter(d)
+      if (!_.isString(html)) {
+        throw new Error('tooltip.formatter must return a string')
+      }
+      if (html) {
+        this._$tip.html(html)
+        this.update()
+      } else {
+        this._enable = false
+      }
+    }
   }
 
   update() {
-    if (this._opts.enable) {
-      eventer.emit('tooltip.show')
+    if (this._enable) {
       const viewerRect = this._$viewer.node().getBoundingClientRect()
       const tipRect = this._$tip.node().getBoundingClientRect()
       const { left, top } = updatePosition(viewerRect, tipRect, this._gap)

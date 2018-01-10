@@ -112,22 +112,25 @@ export function updateEdgesPosition($container, $container2) {
 
 export function renderEdges($container, $container2) {
   const edgeOpts = merge({}, dftOptions, options.edge)
-  $container.selectAll('path').remove()
-  const $edges2 = $container2.selectAll('path').remove()
-  // eslint-disable-next-line no-underscore-dangle
-  $edges2.data(ds.edges, d => d._id).enter().append(d => {
-    if (shapes.indexOf(d.type) === -1) {
-      d.type = 'line'
-    }
-    _.forEach(edgeOpts, (item, key) => {
-      d[key] = merge({}, item, d[key])
+  const edges = ds.change.edges
+  if (edges.length) {
+    $container.selectAll('path').remove()
+    const $edges2 = $container2.selectAll('path').remove()
+    // eslint-disable-next-line no-underscore-dangle
+    $edges2.data(edges, d => d._id).enter().append(d => {
+      if (shapes.indexOf(d.type) === -1) {
+        d.type = 'line'
+      }
+      _.forEach(edgeOpts, (item, key) => {
+        d[key] = merge({}, item, d[key])
+      })
+      const { $edge, $edge2 } = renderEdge(d, $container)
+      $container.append(() => {
+        return $edge.node()
+      })
+      return $edge2.node()
     })
-    const { $edge, $edge2 } = renderEdge(d, $container)
-    $container.append(() => {
-      return $edge.node()
-    })
-    return $edge2.node()
-  })
+  }
 }
 
 export function destroyEdges($container, $container2) {

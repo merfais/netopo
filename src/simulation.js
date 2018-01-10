@@ -67,12 +67,14 @@ const dftOnEnd = function(updateView) {
 }
 
 function set(target, options) {
+  const enable = options.enable
   delete options.enable
   _.forEach(options, (value, key) => {
     if (value !== null) {
       target[key](value)
     }
   })
+  options.enable = enable
 }
 
 class Simulation {
@@ -103,12 +105,26 @@ class Simulation {
     this._updateEdges = updateEdges
   }
 
-  update(nodes, edges) {
+  update(nodes, links) {
     if (this._opts.enable) {
       eventer.emit('simulation.start')
+      // 更新前清除位置信息，重新生成
+      // 使用旧的位置信息，会导致图形慢慢向外延展，而不会收敛
+      _.forEach(nodes, node => {
+        delete node.x
+        delete node.y
+        delete node.vx
+        delete node.vy
+      })
+      _.forEach(links, link => {
+        link.source = link.source.id || link.source
+        link.target = link.target.id || link.target
+      })
+      this.stop()
       this._setParams()
       this._simulater.nodes(nodes)
-      this._force.link.links(edges)
+      this._force.link.links(links)
+      this.restart()
     }
   }
 

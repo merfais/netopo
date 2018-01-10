@@ -56,9 +56,7 @@ class Drag {
   }
 
   bind(enable) {
-    if (enable !== false) {
-      return this._drager
-    }
+    return this._drager
   }
 
   destroy() {
@@ -72,20 +70,26 @@ class Drag {
     const $root = this._$root.node()
     let $drager
     return drag().on('start', function(d) {
-      eventer.emit('drag.start', event, d)
-      $drager = createVirtualNode(d, this)
-      $root.appendChild($drager)
+      if (d.drag.enable) {
+        eventer.emit('drag.start', event, d)
+        $drager = createVirtualNode(d, this)
+        $root.appendChild($drager)
+      }
     }).on('drag', d => {
-      moveVirtualNode(d, $drager)
-      eventer.emit('drag.dragging', event, d)
+      if (d.drag.enable) {
+        moveVirtualNode(d, $drager)
+        eventer.emit('drag.dragging', event, d)
+      }
     }).on('end', d => {
-      $root.removeChild($drager)
-      d.position.x += event.dx
-      d.position.y += event.dy
-      d.linkPoint.x += event.dx
-      d.linkPoint.y += event.dy
-      this._updateView(d)
-      eventer.emit('drag.end', event, d)
+      if (d.drag.enable) {
+        $root.removeChild($drager)
+        d.position.x += event.dx
+        d.position.y += event.dy
+        d.linkPoint.x += event.dx
+        d.linkPoint.y += event.dy
+        this._updateView(d)
+        eventer.emit('drag.end', event, d)
+      }
     })
   }
 }

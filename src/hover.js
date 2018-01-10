@@ -4,22 +4,8 @@ import {
   merge,
   setNull,
 } from './util'
-import ds from './dataSet'
 import tooltip from './tooltip'
 import eventer from './event'
-
-const dftTooltipFormatter = {
-  node(d) {
-    return `${d.label.text}: ${d.value}`
-  },
-  edge(d) {
-    let source = ds.nodeMap.get(d.source)
-    source = source ? source.label.text : d.source
-    let target = ds.nodeMap.get(d.target)
-    target = target ? target.label.text : d.target
-    return `${source} -> ${target}: ${d.value}`
-  }
-}
 
 function rollbackProp(hover, normal) {
   return merge(setNull(hover), normal)
@@ -29,51 +15,44 @@ const subscribers = {
   node($parent) {
     return {
       mouseenter(d) {
-        $parent
-          .select(`#${d.id}_shape`)
-          .call(bind(d.shape.hover))
-        if (d.tooltip.enable) {
-          let formatter = dftTooltipFormatter.node
-          if (_.isFunction(d.tooltip.formatter)) {
-            formatter = d.tooltip.formatter
-          }
-          tooltip.show(formatter(d))
+        let id = `#${d.id}_shape`
+        let attr = 'shape'
+        if (d.shape.type === 'text') {
+          id = 'div'
+          attr = 'label'
         }
+        $parent.select(id).call(bind(d[attr].hover))
+        tooltip.show(d)
         eventer.emit('node.hover', d)
       },
       mouseleave(d) {
-        const prop = rollbackProp(d.shape.hover, {
-          style: d.shape.style,
-          class: d.shape.class,
+        let id = `#${d.id}_shape`
+        let attr = 'shape'
+        if (d.shape.type === 'text') {
+          id = 'div'
+          attr = 'label'
+        }
+        const prop = rollbackProp(d[attr].hover, {
+          style: d[attr].style,
+          class: d[attr].class,
         })
-        const $shape = $parent
-          .select(`#${d.id}_shape`)
-          .call(bind(prop))
+        const $shape = $parent.select(id)
+        $shape.call(bind(prop))
         if (d.shape.type === 'image') {
           $shape.attr('href', d.shape.href)
         }
         tooltip.hide()
       },
       mousemove(d) {
-        if (d.tooltip.enable) {
-          tooltip.update()
-        }
+        tooltip.update()
       },
     }
   },
   edge($parent) {
     return {
       mouseenter(d) {
-        $parent
-          .select(`#${d.id}`)
-          .call(bind(d.path.hover))
-        if (d.tooltip.enable) {
-          let formatter = dftTooltipFormatter.edge
-          if (_.isFunction(d.tooltip.formatter)) {
-            formatter = d.tooltip.formatter
-          }
-          tooltip.show(formatter(d))
-        }
+        $parent.select(`#${d.id}`).call(bind(d.path.hover))
+        tooltip.show(d)
         eventer.emit('edge.hover', d)
       },
       mouseleave(d) {
@@ -87,59 +66,27 @@ const subscribers = {
         tooltip.hide()
       },
       mousemove(d) {
-        if (d.tooltip.enable) {
-          tooltip.update()
-        }
+        tooltip.update()
       },
     }
   },
-  label($parent) {
+  thumbnails($thumbnails, $brush) {
     return {
       mouseenter(d) {
-        $parent
-          .select('div')
-          .call(bind(d.label.hover))
-        if (d.tooltip.enable) {
-          let formatter = dftTooltipFormatter.node
-          if (_.isFunction(d.tooltip.formatter)) {
-            formatter = d.tooltip.formatter
-          }
-          tooltip.show(formatter(d))
-        }
-        eventer.emit('label.hover', d)
-      },
-      mouseleave(d) {
-        const prop = rollbackProp(d.label.hover, {
-          style: d.label.style,
-          class: d.label.class,
-        })
-        $parent
-          .select('div')
-          .call(bind(prop))
-        tooltip.hide()
-      },
-      mousemove(d) {
-        if (d.tooltip.enable) {
-          tooltip.update()
-        }
-      },
-    }
-  },
-  thumbnails($parent, enable) {
-    return {
-      mouseenter(d) {
-        $parent.select('.thumbnails')
+        $thumbnails
           .transition()
           .call(bindStyle(d.hover))
+        $brush.style('display', 'block')
         eventer.emit('thumbnails.hover', d)
       },
       mouseleave(d) {
-        $parent.select('.thumbnails')
+        $thumbnails
           .transition()
           .call(bindStyle({
             height: d.style.height,
             width: d.style.width,
           }))
+        $brush.style('display', 'none')
       },
     }
   },

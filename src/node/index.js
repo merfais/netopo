@@ -43,8 +43,8 @@ function renderShape($node, $node2) {
         .data([d]).enter()
         .append(prop2.type)
         .call(bind(prop2))
-        .call(bindHover(d.shape.type === 'text' ? 'label' : 'node', $node))
-        .call(drag.bind(d.drag.enable))
+        .call(bindHover('node', $node))
+        .call(drag.bind())
     }
   }
 }
@@ -85,7 +85,6 @@ function renderNode(d) {
   const $node = select(document.createElementNS(namespaces.svg, 'g'))
   const $node2 = select(document.createElementNS(namespaces.svg, 'g'))
   renderComponent(d, renderShape($node, $node2), renderLabel($node))
-  // shape label要先计算，因为节点的position信息需要动态计算
   const prop = prepareNode(d)
   const prop2 = merge({}, prop, {
     attr: {
@@ -156,29 +155,34 @@ export function updateNodesPosition($container, $container2) {
 
 export function renderNodes($container, $container2) {
   const nodeOpts = merge({}, dftOptions, options.node)
-  // eslint-disable-next-line no-underscore-dangle
-  let $nodes = $container.selectAll('g').data(ds.nodes, d => d._id)
-  $nodes.exit().remove()
-  // eslint-disable-next-line no-underscore-dangle
-  const $nodes2 = $container2.selectAll('g').data(ds.nodes, d => d._id)
-  $nodes2.exit().remove()
-  $nodes2.enter().append(d => {
-    if (!_.has(d, 'shape')) {
-      d.shape = {
-        type: 'text'
+  // ds.change.node的值在get一次后会被置为[],只有在有新的数据变化时才会被再次赋值
+  // 因此这里需要缓存一次，因为下面有多个地方使用
+  const nodes = ds.change.nodes
+  if (nodes.length) { // 认为只有数据变化才渲染
+    // eslint-disable-next-line no-underscore-dangle
+    let $nodes = $container.selectAll('g').data(nodes, d => d._id)
+    $nodes.exit().remove()
+    // eslint-disable-next-line no-underscore-dangle
+    const $nodes2 = $container2.selectAll('g').data(nodes, d => d._id)
+    $nodes2.exit().remove()
+    $nodes2.enter().append(d => {
+      if (!_.has(d, 'shape')) {
+        d.shape = {
+          type: 'text'
+        }
+      } else {
+        if (shapes.indexOf(d.shape.type) === -1) {
+          d.shape.type = 'text'
+        }
       }
-    } else {
-      if (shapes.indexOf(d.shape.type) === -1) {
-        d.shape.type = 'text'
-      }
-    }
-    _.forEach(nodeOpts, (item, key) => {
-      d[key] = merge({}, item, d[key])
+      _.forEach(nodeOpts, (item, key) => {
+        d[key] = merge({}, item, d[key])
+      })
+      const { $node, $node2 } = renderNode(d)
+      $container.append(() => $node.node())
+      return $node2.node()
     })
-    const { $node, $node2 } = renderNode(d)
-    $container.append(() => $node.node())
-    return $node2.node()
-  })
+  }
 }
 
 export function destroyNodes($container, $container2) {

@@ -33,6 +33,10 @@ class DataSet {
   // forceLink集，用于力导图，力导图会修改links集的数据结构，所以不能直接使用edges集
   // 由于未涉及DOM更新，所以无需raw缓存
   _links = new Set()
+  _hasChange = {          // 标记数据是否发生变化(增、删、改)
+    node: false,          // 重新渲染图，如果数据未发生变化，则不渲染
+    edge: false,
+  }
 
   set nodes(nodes) {
     const map = new Map()
@@ -49,6 +53,7 @@ class DataSet {
         map.set(id, this._nodes.get(id))
         raw.set(id, this._rawNodes.get(id))
       } else {
+        this._hasChange.node = true
         map.set(id, {
           ...node,
           ...extendNode(node, id) // 数据变化会生成新的数据索引等信息
@@ -56,6 +61,9 @@ class DataSet {
         raw.set(id, node)
       }
     })
+    if (this._nodes.size !== map.size) {
+      this._hasChange.node = true
+    }
     this._nodes.clear()
     this._rawNodes.clear()
     this._nodes = map
@@ -86,6 +94,7 @@ class DataSet {
         map.set(id, this._edges.get(id))
         raw.set(id, this._rawEdges.get(id))
       } else {
+        this._hasChange.edge = true
         map.set(id, {
           ...edge,
           ...extendEdge(edge, id) // 数据变化会生成新的数据索引等信息
@@ -107,6 +116,9 @@ class DataSet {
         raw.set(id, edge)
       }
     })
+    if (this._edges.size !== map.size) {
+      this._hasChange.edge = true
+    }
     this._edges.clear()
     this._rawEdges.clear()
     this._edges = map
@@ -127,6 +139,28 @@ class DataSet {
 
   get edgeMap() {
     return this._edges
+  }
+
+  get change() {
+    const self = this
+    /* eslint-disable no-underscore-dangle */
+    return {
+      get nodes() {
+        if (self._hasChange.node) {
+          self._hasChange.node = false
+          return [...self._nodes.values()]
+        }
+        return []
+      },
+      get edges() {
+        if (self._hasChange.edge) {
+          self._hasChange.edge = false
+          return [...self._edges.values()]
+        }
+        return []
+      }
+    }
+    /* eslint-enable no-underscore-dangle */
   }
 
   clear() {

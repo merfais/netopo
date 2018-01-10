@@ -31,7 +31,7 @@ import simulation from './simulation'
 import zoom from './zoom'
 import drag from './drag'
 
-function createSvgWrapper(dom) {
+function createGraphWrapper(dom) {
   if (typeof dom === 'string') {
     dom = document.getElementById(dom)
   }
@@ -45,38 +45,48 @@ function createSvgWrapper(dom) {
   }))
   tooltip.create($container)
   appendHiddenDiv($container)
-  const grid = merge({
-    width: dom.clientWidth + 'px',
-    height: dom.clientHeight + 'px',
-  }, options.grid)
-  const $svgWrapper = $container.append('div').call(bindStyle({
+  const grid = options.grid
+  const $wrapper = $container.append('div').call(bindStyle({
     width: grid.width,
-    height: grid.height || '500px',
+    height: grid.height,
     margin: `${grid.top} ${grid.right} ${grid.bottom} ${grid.left}`,
     position: 'relative',
     overflow: 'hidden',
   }))
-  return $svgWrapper
+  return $wrapper
+}
+
+function getRect(dom) {
+  if (dom) {
+    return {
+      width: dom.clientWidth,
+      height: dom.clientHeight,
+    }
+  }
+  return { width: 0, height: 0 }
 }
 
 export default class Network {
 
+  _$graphWrapper = null
   _$graph = null
   _$defs = null
   _$edgeContainer = null
   _$edgeContainer2 = null
   _$nodeContainer = null
   _$nodeContainer2 = null
+  _wrapperRect = null
 
   constructor(dom, opts) {
     if (!dom) {
       throw new Error('dom paramter is required')
     }
     merge(options, opts)
-    const $svgWrapper = createSvgWrapper(dom)
-    this._createSvg($svgWrapper)
-    this._onResize = this._resizeHandler()
-    onRezie(this._onResize)
+    this._createGraph(dom)
+    this._onResize = this._createResizeHandler()
+    if (this._onResize) {
+      onRezie(this._onResize)
+    }
     const updateNodes = updateNodesPosition(this._$nodeContainer, this._$nodeContainer2)
     const updateEdges = updateEdgesPosition(this._$edgeContainer, this._$edgeContainer2)
     simulation.create(updateNodes, updateEdges, this._$graph)
@@ -92,14 +102,12 @@ export default class Network {
     }
     ds.nodes = nodes
     ds.edges = edges
-    renderNodes(this._$nodeContainer, this._$nodeContainer2)
-    renderEdges(this._$edgeContainer, this._$edgeContainer2)
-    renderDefs(this._$defs)
-    simulation.update(ds.nodes, ds.links)
+    this._update()
   }
 
   setOptions(opts) {
     merge(options, opts)
+    this._update()
   }
 
   destroy() {
@@ -118,14 +126,16 @@ export default class Network {
     this._$nodeContainer2 = null
     this._$zoomWrapper = null
     this._opts = null
+    this._onResize = null
     offResize(this._onResize)
     ds.clear()
     eventer.emit('destroy')
     eventer.destroy()
   }
 
-  _createSvg($svgWrapper) {
-    this._$graph = $svgWrapper.append('svg').call(bindStyle({
+  _createGraph(dom) {
+    this._$graphWrapper = createGraphWrapper(dom)
+    this._$graph = this._$graphWrapper.append('svg').call(bindStyle({
       width: '100%',
       height: '100%',
       'user-select': 'none',
@@ -139,12 +149,35 @@ export default class Network {
     this._$edgeContainer2 = $zoomWrapper.append('g').attr('class', 'nt-edges-cover')
     this._$nodeContainer2 = $zoomWrapper.append('g').attr('class', 'nt-nodes-cover')
     this._$zoomWrapper = $zoomWrapper
-    zoom.create($svgWrapper, this._$graph, $zoomWrapper)
+    zoom.create(this._$graphWrapper, this._$graph, $zoomWrapper)
   }
 
-  _resizeHandler() {
-    return () => {
-      console.log('resize')
+  _update() {
+    this._wrapperRect = getRect(this._$graphWrapper.node())
+    renderNodes(this._$nodeContainer, this._$nodeContainer2)
+    renderEdges(this._$edgeContainer, this._$edgeContainer2)
+    renderDefs(this._$defs)
+    simulation.update(ds.nodes, ds.links)
+    zoom.update()
+  }
+
+  _createResizeHandler() {
+    const resize = options.resize || {}
+    if (resize.enable) {
+      return () => {
+        // 默认使用zoom，只有当需要重新计算位置时再用redraw
+        if (resize.action.redraw) {
+          this._update()
+        } else {
+          const rect = getRect(this._$graphWrapper.node())
+          const k = resize.action.zoomBase === 'width' ?
+            rect.width / this._wrapperRect.width :
+            rect.height / this._wrapperRect.height
+          zoom.zoom({ k })
+        }
+      }
+    } else {
+      return null
     }
   }
 }

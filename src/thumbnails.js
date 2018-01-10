@@ -91,6 +91,7 @@ class Thumbnails {
       k: 1,
     }
     this._onUpdate = () => this.update() // drag or simulation end event handler
+    this._onStart = () => this._$thumbnails.style('display', 'none')
   }
 
   /**
@@ -114,7 +115,7 @@ class Thumbnails {
     this._$thumbnails
       .call(bindStyle(this._opts.style))
       .call(this._zoomer)
-      .call(bindHover('thumbnails', $parent))
+      .call(bindHover('thumbnails', this._$thumbnails, this._$brush))
       .on('wheel', () => {
         event.stopPropagation()
         event.preventDefault()
@@ -122,7 +123,9 @@ class Thumbnails {
     this._$brush
       .call(bindStyle(this._opts.brush.style))
       .call(this._drager)
+    eventer.on('simulation.start', this._onStart)
     eventer.on('simulation.end', this._onUpdate)
+    eventer.on('drag.start', this._onStart)
     eventer.on('drag.end', this._onUpdate)
   }
 
@@ -205,10 +208,13 @@ class Thumbnails {
    * @param {object} transform 原始图的transfrom
    */
   updateBrushPositon(transform) {
+    console.log(transform.k, this._wrapperTransform.k)
     const dx = transform.x - this._wrapperTransform.x
     const dy = transform.y - this._wrapperTransform.y
     this._wrapperTransform.x += dx
     this._wrapperTransform.y += dy
+    this._wrapperTransform.k = transform.k
+    // TODO: 重置scale，计算width | Height
     this._brushRect.top -= dy * this._opts.scale
     this._brushRect.left -= dx * this._opts.scale
     this._$brush.call(bindStyle(pixeled({
@@ -232,7 +238,9 @@ class Thumbnails {
     this._wrapperRect = null
     this._brushRect = null
     this._brushBaseRect = null
+    eventer.off('simulation.start', this._onUpdate)
     eventer.off('simulation.end', this._onUpdate)
+    eventer.off('drag.start', this._onUpdate)
     eventer.off('drag.end', this._onUpdate)
     eventer.emit('thumbnails.destroy')
   }
@@ -318,8 +326,10 @@ class Thumbnails {
     })
   }
 }
-
-options.thumbnails = merge({}, dftOptions, options.thumbnails)
-const thumbnails = new Thumbnails(options.thumbnails)
+if (!_.has(options.zoom, 'thumbnails')) {
+  options.zoom.thumbnails = {}
+}
+options.zoom.thumbnails = merge({}, dftOptions, options.zoom.thumbnails)
+const thumbnails = new Thumbnails(options.zoom.thumbnails)
 
 export default thumbnails
