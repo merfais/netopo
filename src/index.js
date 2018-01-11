@@ -75,7 +75,6 @@ export default class Network {
   _$edgeContainer2 = null
   _$nodeContainer = null
   _$nodeContainer2 = null
-  _wrapperRect = null
 
   constructor(dom, opts) {
     if (!dom) {
@@ -153,7 +152,6 @@ export default class Network {
   }
 
   _update() {
-    this._wrapperRect = getRect(this._$graphWrapper.node())
     renderNodes(this._$nodeContainer, this._$nodeContainer2)
     renderEdges(this._$edgeContainer, this._$edgeContainer2)
     renderDefs(this._$defs)
@@ -163,6 +161,7 @@ export default class Network {
 
   _createResizeHandler() {
     const resize = options.resize || {}
+    let wrapperRect = getRect(this._$graphWrapper.node())
     if (resize.enable) {
       return () => {
         // 默认使用zoom，只有当需要重新计算位置时再用redraw
@@ -170,10 +169,13 @@ export default class Network {
           this._update()
         } else {
           const rect = getRect(this._$graphWrapper.node())
-          const k = resize.action.zoomBase === 'width' ?
-            rect.width / this._wrapperRect.width :
-            rect.height / this._wrapperRect.height
-          zoom.zoom({ k })
+          const scale = resize.action.zoomBase === 'width' ?
+            rect.width / wrapperRect.width :
+            rect.height / wrapperRect.height
+          wrapperRect = rect
+          if (scale !== 1) {
+            zoom.resizeZoom(rect, scale)
+          }
         }
       }
     } else {

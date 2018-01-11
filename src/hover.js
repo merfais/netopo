@@ -70,23 +70,17 @@ const subscribers = {
       },
     }
   },
-  thumbnails($thumbnails, $brush) {
+  thumbnails($thumbnails) {
     return {
       mouseenter(d) {
-        $thumbnails
-          .transition()
-          .call(bindStyle(d.hover))
-        $brush.style('display', 'block')
+        $thumbnails.call(bindStyle(d.hover))
         eventer.emit('thumbnails.hover', d)
       },
       mouseleave(d) {
-        $thumbnails
-          .transition()
-          .call(bindStyle({
-            height: d.style.height,
-            width: d.style.width,
-          }))
-        $brush.style('display', 'none')
+        $thumbnails.call(bindStyle({
+          height: d.style.height,
+          width: d.style.width,
+        }))
       },
     }
   },
