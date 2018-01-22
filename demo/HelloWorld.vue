@@ -16,6 +16,7 @@
 
 <script>
   import router from 'demo/router'
+
   export default {
     name: 'HelloWorld',
     data() {
@@ -25,7 +26,6 @@
       };
     },
     mounted() {
-      debugger
       router.options.routes.forEach(route => {
         let firstPath = '/#' + route.path
         let firstRoute = {

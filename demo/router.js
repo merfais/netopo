@@ -15,7 +15,13 @@ export default new Router({
         {
           path: 'network',
           component(resolve) {
-            require(['./Network.vue'], resolve);
+            require(['./GraphDemo.vue'], resolve);
+          },
+        },
+        {
+          path: 'network2',
+          component(resolve) {
+            require(['./TopoGraphDemo.vue'], resolve);
           },
         },
       ],

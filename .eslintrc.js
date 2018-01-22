@@ -32,13 +32,13 @@ module.exports = {
     'import/prefer-default-export': 0,
     'import/no-named-as-default': 0,
     'import/no-webpack-loader-syntax': 0,
+    // allow debugger during development
     'no-debugger': process.env.NODE_ENV === 'production' ? 2 : 1,
 
     //usage
     'arrow-parens': [0],
     'arrow-spacing': [1],
     'arrow-body-style': [0],
-    'block-spacing': [1],
     'camelcase': [0],
     'comma-dangle': [1, 'only-multiline'],
     'comma-spacing': [1],
@@ -52,7 +52,7 @@ module.exports = {
     'key-spacing': [1],
     'keyword-spacing': [1],
     // SwitchCase https://github.com/eslint/eslint/issues/1797
-    'indent': [1, 2, {'SwitchCase': 1}],
+    'indent': [2, 2, {'SwitchCase': 1}],
     'max-len': [1],
     'new-cap': [1],
     'newline-per-chained-call': [0, {
@@ -61,7 +61,6 @@ module.exports = {
     'no-bitwise': [0, {
       'allow': ['|', '&']
     }],
-    'no-console': [0],
     'no-lonely-if': [0],
     'no-mixed-operators': [0, {
       'groups': [
@@ -90,7 +89,7 @@ module.exports = {
     'no-underscore-dangle': [1, {'allowAfterThis': true}],
     'no-unneeded-ternary': [1],
     'no-restricted-syntax': [1, 'DebuggerStatement'],
-    'no-plusplus': [0, { 'allowForLoopAfterthoughts': true }],
+    'no-plusplus': [1, { 'allowForLoopAfterthoughts': true }],
     'no-param-reassign': [0, {
       'props': true
     }],
