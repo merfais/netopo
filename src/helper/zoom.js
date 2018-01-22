@@ -5,13 +5,11 @@ import {
 import {
   event
 } from 'd3-selection'
-import options from './options'
-import eventer from './event'
 import {
   merge,
   parseTranform,
 } from './util'
-import thumbnails from './thumbnails'
+import Thumbnails from './thumbnails'
 
 const dftOptions = {
   enable: true,
@@ -23,56 +21,72 @@ const dftOptions = {
 const defaultFilter = function(opts) {
   return () => {
     if (opts.thumbnails.enable) {
-      return event.type !== 'wheel' && event.type !== 'dblclick'
+      return event.type !== 'wheel' &&
+        event.type !== 'dblclick' &&
+        event.button === 0  // 左键
     }
     return !event.button
   }
 }
 
-class Zoom {
+export default class Zoom {
+
+  _opts = null
+  _eventer = null
+  _zoomer = null
+  _thumbnails = null
+  _transform = null
+  _$zoomWrapper = null
+  _$subscriber = null
 
   constructor(options) {
-    this._opts = options
+    if (_.has(options, 'zoom')) {
+      this._opts = merge({}, dftOptions, options.zoom)
+      options.zoom = this._opts
+    } else {
+      this._opts = merge({}, dftOptions, options)
+    }
     this._zoomer = zoom()
-    this._$zoomWrapper = null
-    this._$subscriber = null
     // 缓存wrapper的transform属性，每次读取DOM由于性能问题出现延时则会计算错误
     this._transform = { x: 0, y: 0, k: 1 }
   }
 
-  create($root, $subscriber, $zoomWrapper) {
+  create($root, $subscriber, $zoomWrapper, eventer) {
+    this._eventer = eventer
     this._transform = parseTranform($zoomWrapper.attr('transform'))
     // 需要使用引用传递的方式将this._transform传递给thumbnails
     // 是因为thumbnails在zoom和drag的使用同时需要修改zoomWrapper的tramform值
     // 如果每次从dom上读取再写入有性能问题，因此使用缓存
     // 但zoom.js的zoom事件也要修改tramform的值，
     // 如果不使用同一个引用，在事件响应中数据同步比较麻烦
-    thumbnails.create($root, $subscriber, $zoomWrapper, this._transform)
+    this._thumbnails = new Thumbnails(this._opts)
+      .create($root, $subscriber, $zoomWrapper, eventer, this._transform)
     this._$subscriber = $subscriber
     this._$zoomWrapper = $zoomWrapper
-    eventer.emit('zoom.create')
+    this._eventer.emit('zoom.create')
+    return this
   }
 
   update() {
     if (this._opts.enable) {
       this._bindParams()
       this._zoomer.on('start', () => {
-        eventer.emit('zoom.start', this._transform)
+        this._eventer.emit('zoom.start', this._transform)
       }).on('zoom', () => {
         const transform = { ...event.transform }
         const dx = transform.x - this._transform.x
         const dy = transform.y - this._transform.y
         merge(this._transform, transform)
         this._zoom(dx, dy)
-        eventer.emit('zoom.zooming', event)
+        this._eventer.emit('zoom.zooming', event)
       }).on('end', () => {
-        eventer.emit('zoom.end')
+        this._eventer.emit('zoom.end')
       })
     } else {
       this._zoomer.on('start', null).on('zoom', null).on('end', null)
     }
     this._$subscriber.call(this._zoomer)
-    eventer.emit('zoom.update')
+    this._eventer.emit('zoom.update')
   }
 
   resizeZoom(rect, scale) {
@@ -91,9 +105,14 @@ class Zoom {
   destroy() {
     this._zoomer.on('start', null).on('zoom', null).on('end', null)
     this._zoomer = null
+    this._thumbnails.destroy()
+    this._thumbnails = null
+    this._$subscriber = null
     this._$zoomWrapper = null
     this._opts = null
-    eventer.emit('zoom.destroy')
+    this._transform = null
+    this._eventer.emit('zoom.destroy')
+    this._eventer = null
   }
 
   _zoom(dx, dy, rect, scale) {
@@ -103,7 +122,7 @@ class Zoom {
     transform = zoomTransform({}).translate(x, y).scale(k)
     this._$subscriber.property('__zoom', transform)
     if (this._opts.thumbnails.enable) {
-      thumbnails.updateBrushPositon(dx, dy, rect, scale)
+      this._thumbnails.updateBrushPositon(dx, dy, rect, scale)
     }
   }
 
@@ -122,8 +141,3 @@ class Zoom {
   }
 
 }
-
-options.zoom = merge({}, dftOptions, options.zoom)
-const zoomer = new Zoom(options.zoom)
-
-export default zoomer

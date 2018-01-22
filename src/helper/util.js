@@ -53,16 +53,6 @@ export function setNull(target) {
   return rtn
 }
 
-export function exportFn(module, keys) {
-  const rst = {}
-  keys.forEach(key => {
-    rst[key] = (...params) => {
-      return module[key](...params)
-    }
-  })
-  return rst
-}
-
 export function bindAttr(attr) {
   return $selector => {
     _.forEach(attr, (value, key) => {
@@ -204,91 +194,3 @@ export function offResize(handler) {
   window.removeEventListener('resize', throttleFunc)
   window.removeEventListener('optimizedResize', handler)
 }
-
-/*
-export function bindAttr(prepareData, dft) {
-  return $selector => {
-    let data = prepareData
-    if (_.isFunction(prepareData)) {
-      $selector.attr('data-calc', d => {
-        data = prepareData(d, dft)
-        return null
-      })
-    }
-    _.forEach(data.attr, (value, key) => {
-      $selector.attr(key, value)
-    })
-    _.forEach(data.style, (value, key) => {
-      $selector.style(key, value)
-    })
-    return $selector
-  }
-}
-
-
-function bind(type, dataKey, default) {
-  return $selector => {
-    let data = {}
-    $selector[type]('data-calc', d => {
-      const source = _.get(d, [dataKey, type])
-      const target = _.get(default, [dataKey, type])
-      data = merge({}, target, source)
-      return null
-    })
-    _.forEach(data, (key, value) => {
-      $selector[type](key, value)
-    })
-    return $selector
-  }
-}
-
-export function bindAttr(dataKey, default) {
-  return bind('attr', dataKey, default)
-}
-
-export function bindStyle(dataKey, default) {
-  return bind('style', dataKey, default)
-}
-
-function prepareMerge(...params) {
-  return (default, data) => {
-    const source = _.get(data, params)
-    const target = _.get(default, params)
-    return merge({}, target, source)
-  }
-}
-
-function genBind(type) {
-  return ($selector, getData) => {
-    let data = {}
-    $selector[type]('data-calc', d => {
-      data = getData(d)
-      return null
-    })
-    _.forEach(data, (key, value) => {
-      $selector[type](key, value)
-    })
-    return $selector
-  }
-}
-
-export function bindAttr(dataKey, default) {
-  const set = genBind('attr')
-  const mergeData = prepareMerge(dataKey, 'attr')
-  return $selector => {
-    return set($selector, d => {
-      return mergeData(default, d)
-    })
-  }
-}
-
-export function bindStyle(dataKey, default) {
-  const set = genBind('style')
-  const mergeData = prepareMerge(dataKey, 'style')
-  return $selector => {
-    return set($selector, d => {
-      return mergeData(default, d)
-    })
-  }
-}
-*/

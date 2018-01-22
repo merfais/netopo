@@ -1,6 +1,9 @@
 import {
   merge
-} from '../util.js'
+} from '../helper'
+import {
+  rectTheme
+} from './theme'
 
 const dftOptions = {
   shape: {
@@ -10,39 +13,14 @@ const dftOptions = {
     ry: 5,
     width: 100,
     height: 36,
-    style: {
-      cursor: 'pointer',
-      stroke: '#666',
-      'stroke-width': 0.8,
-      fill: 'e8e8e8',
-    },
-    class: '',
-    hover: {
-      style: {
-        stroke: '#777',
-        fill: '#eee',
-      },
-      class: '',
-    }
+    ...rectTheme.shape,
   },
   label: {
     x: 0,
     y: 0,
     width: 100,
     height: 30,
-    style: {
-      display: 'flex',
-      height: '100%',
-      padding: '5px',
-      color: '#333',
-      'justify-content': 'center',
-      'align-items': 'center',
-      'word-break': 'break-all',
-      'line-height': '1.2em',
-      'letter-spacing': '0.1em',
-      'font-size': '14px',
-      'box-sizing': 'border-box',
-    },
+    ...rectTheme.label,
   }
 }
 
@@ -68,11 +46,11 @@ function prepareLabel(d) {
   d.label = merge({}, dftOptions.label, wh, d.label)
 }
 
-function prepare(d) {
+function prepareData(d) {
   prepareShape(d)
   prepareLabel(d)
 }
 
 export default {
-  prepare,
+  prepareData,
 }

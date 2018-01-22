@@ -1,9 +1,9 @@
 import {
   merge
-} from '../util'
+} from '../helper'
 import {
-  calcLabelHeight
-} from './index'
+  textTheme
+} from './theme'
 
 const dftOptions = {
   shape: {
@@ -13,34 +13,14 @@ const dftOptions = {
     ry: 5,
     width: null,
     height: null,
-    style: {
-      cursor: 'pointer',
-      fill: 'e8e8e8',
-    },
+    ...textTheme.shape,
   },
   label: {
     x: 0,
     y: 0,
     width: 100,
     height: null,
-    style: {
-      display: 'flex',
-      height: '100%',
-      color: '#333',
-      'justify-content': 'center',
-      'align-items': 'center',
-      'word-break': 'break-all',
-      'line-height': '1.2em',
-      'letter-spacing': '0.1em',
-      'font-size': '14px',
-      'box-sizing': 'border-box',
-    },
-    hover: {
-      style: {
-        color: '#3492ff',
-      },
-      class: '',
-    }
+    ...textTheme.label,
   }
 }
 
@@ -53,7 +33,7 @@ function calcLinkPoint(d) {
   d.linkPoint.y = d.linkPoint.y || y + height / 2
 }
 
-function prepareLabel(d) {
+function prepareLabel(d, calcLabelHeight) {
   d.label = merge({}, dftOptions.label, d.label)
   if (d.label.height === null) {
     d.label.height = calcLabelHeight(d.label)
@@ -71,12 +51,12 @@ function prepareShape(d) {
   calcLinkPoint(d)
 }
 
-function prepare(d) {
-  prepareLabel(d)
+function prepareData(d, calcLabelHeight) {
+  prepareLabel(d, calcLabelHeight)
   prepareShape(d)
 }
 
 
 export default {
-  prepare,
+  prepareData,
 }

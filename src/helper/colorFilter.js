@@ -1,4 +1,4 @@
-function genFilter(id, value) {
+export function genColorFilter(id, value) {
   return {
     attr: {
       id: id
@@ -18,9 +18,9 @@ function genFilter(id, value) {
 }
 
 export function darkerFilter(k = 1) {
-  return genFilter('darker', 0.7 ** k)
+  return genColorFilter('darker', 0.7 ** k)
 }
 
 export function brighterFilter(k = 1) {
-  return genFilter('brighter', (1 / 0.7) ** k)
+  return genColorFilter('brighter', (1 / 0.7) ** k)
 }

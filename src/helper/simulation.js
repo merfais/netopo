@@ -5,43 +5,41 @@ import {
   forceCenter,
   forceCollide,
 } from 'd3-force'
-import options from './options'
-import eventer from './event'
 import {
   merge,
 } from './util'
 
 const dftOptions = {
-  enable: false,
+  enable: true,
   speed: {
-    alpha: 1,            // alpha 初值，仿真速度
-    alphaMin: 0.4,       // alpha 最小值
+    alpha: 1.2,            // alpha 初值，仿真速度
+    alphaMin: 0.2,       // alpha 最小值
     alphaTarget: 0.15,   // alpha 目标值
-    alphaDecay: 0.01,    // alpha 衰减系数
-    velocityDecay: 0.9,  // 速度衰减系数，摩擦力
+    alphaDecay: 0.02,    // alpha 衰减系数
+    velocityDecay: 0.95,  // 速度衰减系数，摩擦力
     onTick: null,
     onEnd: null,
   },
   force: {
     nBody: {
       enable: true,
-      strength: -250,    // 引力强度，重力模型、电荷力模型
+      strength: -350,    // 引力强度，重力模型、电荷力模型
       theta: 1.5,        // Barnes-Hut 相关
-      distanceMin: 80,   // 最小距离
+      distanceMin: 60,   // 最小距离
       distanceMax: 400,  // 最大距离
     },
     link: {
       enable: true,
-      distance: 120,    // 两点距离
-      strength: 0.2,    // 连线的弹力强度
-      iterations: 5,    // 迭代次数
+      distance: 100,    // 两点距离
+      strength: 1.2,    // 连线的弹力强度
+      iterations: 3,    // 迭代次数
       id: d => d.id,      // node索引函数
     },
     collide: {
       enable: true,
-      radius: 25,       // 碰撞半径
+      radius: 15,       // 碰撞半径
       strength: 0.3,    // 碰撞强度
-      iterations: 5,    // 迭代次数
+      iterations: 3,    // 迭代次数
     },
     center: {
       enable: true,
@@ -77,14 +75,24 @@ function set(target, options) {
   options.enable = enable
 }
 
-class Simulation {
+export default class Simulation {
+
+  _opts = null
+  _eventer = null
+  _updateNodes = null
+  _updateEdges = null
+  _$graph = null
+  _simulator = null
+  _force = null
 
   constructor(options) {
-    this._opts = options
-    this._updateNodes = null
-    this._updateEdges = null
-    this._$viewer = null
-    this._simulater = forceSimulation()
+    if (_.has(options, 'simulation')) {
+      this._opts = merge({}, dftOptions, options.simulation)
+      options.simulation = this._opts
+    } else {
+      this._opts = merge({}, dftOptions, options)
+    }
+    this._simulator = forceSimulation()
     this._force = {
       nBody: forceManyBody(),
       link: forceLink(),
@@ -93,21 +101,23 @@ class Simulation {
     }
   }
 
-  create(updateNodes, updateEdges, $viewer) {
-    this._$viewer = $viewer
-    if (!_.isFunction(updateNodes)) {
+  create($graph, eventer, update) {
+    if (update && !_.isFunction(update.nodes)) {
       throw new Error('updateNodes must be function')
     }
-    if (!_.isFunction(updateEdges)) {
+    if (update && !_.isFunction(update.edges)) {
       throw new Error('updateEdges must be function')
     }
-    this._updateNodes = updateNodes
-    this._updateEdges = updateEdges
+    this._eventer = eventer
+    this._$graph = $graph
+    this._updateNodes = update.nodes
+    this._updateEdges = update.edges
+    return this
   }
 
   update(nodes, links) {
-    if (this._opts.enable) {
-      eventer.emit('simulation.start')
+    if (this._opts.enable && !(_.isEmpty(nodes) && _.isEmpty(links))) {
+      this._eventer.emit('simulation.start')
       // 更新前清除位置信息，重新生成
       // 使用旧的位置信息，会导致图形慢慢向外延展，而不会收敛
       _.forEach(nodes, node => {
@@ -122,47 +132,52 @@ class Simulation {
       })
       this.stop()
       this._setParams()
-      this._simulater.nodes(nodes)
+      this._simulator.nodes(nodes)
       this._force.link.links(links)
       this.restart()
+    } else {
+      this.stop()
+      this._simulator.on('tick', null).on('end', null)
+      this._eventer.emit('graph.update')
     }
   }
 
   restart() {
-    eventer.emit('simulation.restart')
-    this._simulater.restart()
+    this._eventer.emit('simulation.restart')
+    this._simulator.restart()
   }
 
   stop() {
-    this._simulater.stop()
-    eventer.emit('simulation.stop')
+    this._simulator.stop()
+    this._eventer.emit('simulation.stop')
   }
 
   tick() {
-    this._simulater.tick()
+    this._simulator.tick()
   }
 
   destroy() {
-    this._simulater.on('tick', null).on('end', null)
+    this._simulator.on('tick', null).on('end', null)
     _.forEach(this._force, (force, name) => {
-      this._simulater.force(name, null)
+      this._simulator.force(name, null)
       this._force[name] = null
     })
     this._force = null
     this._updateNodes = null
     this._updateEdges = null
     this._opts = null
-    eventer.emit('simulation.destroy')
+    this._eventer.emit('simulation.destroy')
+    this._eventer = null
   }
 
   _setParams() {
-    set(this._simulater, this._opts.speed)
+    set(this._simulator, this._opts.speed)
     _.forEach(this._force, (force, name) => {
       if (this._opts.force[name].enable) {
         if (name === 'center' && (this._opts.force.center.x === null ||
           this._opts.force.center.y === null)
         ) {
-          const rect = this._$viewer.node().getBoundingClientRect()
+          const rect = this._$graph.node().getBoundingClientRect()
           set(force, {
             x: rect.width / 2,
             y: rect.height / 2,
@@ -170,26 +185,26 @@ class Simulation {
         } else {
           set(force, this._opts.force[name])
         }
-        this._simulater.force(name, force)
+        this._simulator.force(name, force)
       } else {
-        this._simulater.force(name, null)
+        this._simulator.force(name, null)
       }
     })
-    this._simulater.on('tick', null).on('end', null)
+    this._simulator.on('tick', null).on('end', null)
     if (this._opts.enable) {
       // filter 会影响 simulation 效率，所以开始simulation前去掉所有的filter
       // 结束后再添加回来
-      const $filters = this._$viewer.selectAll('filter').remove()
+      const $filters = this._$graph.selectAll('filter').remove()
       const updateView = dftUpdateView(this._updateNodes, this._updateEdges)
       const onTick = dftOnTick(updateView)
       const onEnd = dftOnEnd(updateView)
-      this._simulater.on('tick', () => {
+      this._simulator.on('tick', () => {
         if (_.isFunction(this._opts.onTick)) {
           this._opts.onTick(onTick)
         } else {
           onTick()
         }
-        eventer.emit('simulation.tick')
+        this._eventer.emit('simulation.tick')
       }).on('end', () => {
         if (_.isFunction(this._opts.onEnd)) {
           this._opts.onEnd(onEnd)
@@ -198,15 +213,10 @@ class Simulation {
         }
         // 将删除的filter添加回DOM
         $filters.nodes().forEach(node => {
-          this._$viewer.select('defs').append(() => node)
+          this._$graph.select('defs').append(() => node)
         })
-        eventer.emit('simulation.end')
+        this._eventer.emit('simulation.end')
       })
     }
   }
 }
-
-options.simulation = merge({}, dftOptions, options.simulation)
-const simulation = new Simulation(options.simulation)
-
-export default simulation

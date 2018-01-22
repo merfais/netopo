@@ -1,44 +1,45 @@
 import {
   event as d3Event
 } from 'd3-selection'
-import ds from './dataSet'
-import options from './options'
-import eventer from './event'
 import {
   merge,
   bindStyle,
 } from './util'
 
-const dftOptions = {
-  enable: true,
-  style: {
-    border: '0 solid rgb(51, 51, 51)',
-    'border-radius': '4px',
-    'white-space': 'nowrap',
-    transition: 'all 0.4s cubic-bezier(0.23, 1, 0.32, 1)',
-    'z-index': 1,
-    'background-color': 'rgba(50, 50, 50, 0.7)',
-    color: '#fff',
-    'font-style': 'normal',
-    'font-size': '14px',
-    'line-height': '21px',
-    padding: '5px',
-    left: 0,
-    top: 0,
-    position: 'absolute',
-    display: 'none',
-  },
+const theme = {
+  border: '0 solid rgb(51, 51, 51)',
+  'border-radius': '4px',
+  'white-space': 'nowrap',
+  transition: 'all 0.4s cubic-bezier(0.23, 1, 0.32, 1)',
+  'z-index': 1,
+  'background-color': 'rgba(50, 50, 50, 0.7)',
+  'box-shadow': '3px 3px 10px rgba(0, 0, 0, 0.2)',
+  color: '#fff',
+  'font-style': 'normal',
+  'font-size': '14px',
+  'line-height': '21px',
+  padding: '5px',
+  left: 0,
+  top: 0,
+  position: 'absolute',
+  display: 'none',
 }
 
-const dftFormatter = type => {
+const dftOptions = {
+  enable: true,
+  gap: 20,
+  style: theme,
+}
+
+const dftFormatter = (type, ds) => {
   if (type === 'node') {
-    return d => `${d.label.text}: ${d.value}`
+    return d => `${d.label.text || d.id}: ${d.value}`
   } else if (type === 'edge') {
     return d => {
       let source = ds.nodeMap.get(d.source)
-      source = source ? source.label.text : d.source
+      source = source ? (source.label.text || source.id) : d.source
       let target = ds.nodeMap.get(d.target)
-      target = target ? target.label.text : d.target
+      target = target ? (target.label.text || target.id) : d.target
       return `${source} -> ${target}: ${d.value}`
     }
   } else {
@@ -71,19 +72,37 @@ function updatePosition(viewerRect, tipRect, gap) {
   }
 }
 
-class Tooltip {
+export default class Tooltip {
+
+  _opts = null
+  _onDragStart = null
+  _onDragEnd = null
+  _$viewer = null
+  _$tip = null
+  _ds = null
+  _eventer = null
+
   constructor(options) {
-    this._opts = options
-    this._gap = 20
+    if (_.has(options, 'tooltip')) {
+      this._opts = merge({}, dftOptions, options.tooltip)
+      options.tooltip = this._opts
+    } else {
+      this._opts = merge({}, dftOptions, options)
+    }
     this._onDragStart = () => (this._opts.enable = false)
     this._onDragEnd = () => (this._opts.enable = true)
   }
 
-  create($viewer) {
+  create($viewer, ds, eventer) {
+    this._ds = ds
+    this._eventer = eventer
     this._$viewer = $viewer
-    this._$tip = $viewer.append('div').call(bindStyle(this._opts.style))
-    eventer.on('drag.start', this._onDragStart)
-    eventer.on('drag.end', this._onDragEnd)
+    this._$tip = $viewer.append('div')
+      .attr('class', 'tooltip')
+      .call(bindStyle(this._opts.style))
+    this._eventer.on('drag.start', this._onDragStart)
+    this._eventer.on('drag.end', this._onDragEnd)
+    return this
   }
 
   show(d) {
@@ -93,9 +112,9 @@ class Tooltip {
     d.tooltip = d.tooltip || {}
     this._enable = d.tooltip.enable
     if (this._enable) {
-      eventer.emit('tooltip.show')
+      this._eventer.emit('tooltip.show')
       const type = _.has(d, 'shape') ? 'node' : 'edge'
-      let formatter = dftFormatter(type)
+      let formatter = dftFormatter(type, this._ds)
       if (_.isFunction(d.tooltip.formatter)) {
         formatter = d.tooltip.formatter
       }
@@ -116,31 +135,27 @@ class Tooltip {
     if (this._enable) {
       const viewerRect = this._$viewer.node().getBoundingClientRect()
       const tipRect = this._$tip.node().getBoundingClientRect()
-      const { left, top } = updatePosition(viewerRect, tipRect, this._gap)
+      const { left, top } = updatePosition(viewerRect, tipRect, this._opts.gap)
       this._$tip.call(bindStyle({
         left,
         top,
         display: 'block',
       }))
-      eventer.emit('tooltip.update')
+      this._eventer.emit('tooltip.update')
     }
   }
 
   hide() {
     this._$tip.style('display', 'none')
-    eventer.emit('tooltip.hide')
+    this._eventer.emit('tooltip.hide')
   }
 
   destroy() {
     this._$tip.remove()
     this._opts = null
-    eventer.off('drag.start', this._onDragStart)
-    eventer.off('drag.end', this._onDragEnd)
-    eventer.emit('tooltip.destroy')
+    this._eventer.off('drag.start', this._onDragStart)
+    this._eventer.off('drag.end', this._onDragEnd)
+    this._eventer.emit('tooltip.destroy')
+    this._eventer = null
   }
 }
-
-options.tooltip = merge({}, dftOptions, options.tooltip)
-const tooltip = new Tooltip(options.tooltip)
-
-export default tooltip

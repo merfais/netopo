@@ -1,9 +1,9 @@
 import {
   merge
-} from '../util.js'
+} from '../helper'
 import {
-  calcLabelHeight
-} from './index'
+  imageTheme
+} from './theme'
 
 const dftOptions = {
   shape: {
@@ -11,17 +11,7 @@ const dftOptions = {
     y: 0,
     width: 30,
     height: 30,
-    style: {
-      cursor: 'pointer',
-      fill: '#e8e8e8',
-    },
-    class: '',
-    hover: {
-      style: {
-        filter: 'url(#brighter)'
-      },
-      class: '',
-    },
+    ...imageTheme.shape,
   },
   label: {
     x: null,      // 如果渲染时未提供，则置为 shape.x + shape.width / 2
@@ -29,21 +19,11 @@ const dftOptions = {
     width: null,  // 如果渲染时未提供，则置为 100
     height: null,
     transform: null, // 如果渲染时未提供，则设置 translate(-shape.width / 2, 0)
-    style: {
-      display: 'flex',
-      color: '#333',
-      'justify-content': 'center',
-      'word-break': 'break-all',
-      'line-height': '1.2em',
-      'padding-top': '5px',
-      'letter-spacing': '0.1em',
-      'font-size': '14px',
-      'box-sizing': 'border-box',
-    },
+    ...imageTheme.label,
   }
 }
 
-function prepareLabel(d) {
+function prepareLabel(d, calcLabelHeight) {
   d.label = merge({}, dftOptions.label, d.label)
   if (d.label.x === null && d.label.y === null) {
     // 当未设置 x y 需要设置默认值
@@ -82,11 +62,11 @@ function prepareShape(d) {
   calcLinkPoint(d)
 }
 
-function prepare(d) {
+function prepareData(d, calcLabelHeight) {
   prepareShape(d)
-  prepareLabel(d)
+  prepareLabel(d, calcLabelHeight)
 }
 
 export default {
-  prepare,
+  prepareData,
 }

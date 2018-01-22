@@ -9,18 +9,36 @@ import {
   zoomTransform,
 } from 'd3-zoom'
 import { Base64 } from 'js-base64'
-import options from './options'
-import eventer from './event'
-import {
-  bindHover,
-  unBindHover,
-} from './hover'
 import {
   merge,
   bindStyle,
   pixeled,
   getSvgRect,
 } from './util'
+
+const theme = {
+  background: {
+    display: 'block',
+    overflow: 'hidden',
+    position: 'absolute',
+    top: '5px',
+    right: '5px',
+    border: '0px solid #ccc',
+    'box-shadow': '0 0 10px rgba(0, 0, 0, .3)',
+    'background-color': '#fafafa',
+    'background-size': '100%',
+    'background-repeat': 'no-repeat',
+    'background-position': 'center',
+    transition: 'height .3s, width .3s',
+  },
+  brush: {
+    position: 'absolute',
+    background: '#bcbcbc',
+    border: '1px dashed #aaa',
+    cursor: 'move',
+    opacity: 0.3
+  },
+}
 
 const dftOptions = {
   enable: true,
@@ -37,31 +55,20 @@ const dftOptions = {
     },
   },
   style: {
-    display: 'block',
-    overflow: 'hidden',
     width: 0,
     height: 0,
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    border: '0px solid #ccc',
-    'box-shadow': '0 0 10px rgba(0, 0, 0, .3)',
-    'background-color': '#fff',
-    'background-size': '100%',
-    'background-repeat': 'no-repeat',
-    'background-position': 'center',
-    transition: 'height .3s, width .3s',
+    ...theme.background,
   },
   hover: {},
   brush: {
     minSize: 20, // 只支持px，防止brush过小
-    style: {
-      position: 'absolute',
-      background: '#f5f5f5',
-      border: '1px dashed #333',
-      cursor: 'move',
-      opacity: 0.3
-    }
+    style: theme.brush
+  }
+}
+
+function removeDOM(dom) {
+  if (dom && dom.remove) {
+    dom.remove()
   }
 }
 
@@ -72,21 +79,50 @@ function genImg(rect, svg) {
   return 'data:image/svg+xml;base64,' + Base64.encode(s)
 }
 
-class Thumbnails {
+function hover($thumbnails, eventer) {
+  return {
+    mouseenter(d) {
+      $thumbnails.call(bindStyle(d.hover))
+      eventer.emit('thumbnails.hover', d)
+    },
+    mouseleave(d) {
+      $thumbnails.call(bindStyle({
+        height: d.style.height,
+        width: d.style.width,
+      }))
+    },
+  }
+}
+
+export default class Thumbnails {
+
+  _$thumbnails = null
+  _$graph = null
+  _$zoomWrapper = null
+  _$brush = null
+  _opts = null              // 全局options.thumbnails的索引
+  _eventer = null
+  _zoomer = null
+  _dragger = null
+  _graphRect = null         // 可视区域
+  _brushRect = null         // brush区域，= 可视区域
+  _brushBaseRect = null     // 用于计算缩放后的brush大小
+  _brushBoundary = 20       // 防止brush被拖出可视区
+  _brushMaxScale = 0.95     // brush最大缩放系数，占缩略图比例，防止brush完全溢出缩略图区域
+  _transform = null
+  _onUpdate = null          // 缩略图的更新通过事件传递，更新事件响应回调
+  _onStart = null
+  _onZoomEnd = null
+
   constructor(options) {
-    this._$thumbnails = null
-    this._$graph = null
-    this._$zoomWrapper = null
-    this._$brush = null
-    this._opts = options          // 全局options.thumbnails的索引
+    if (_.has(options, 'thumbnails')) {
+      this._opts = merge({}, dftOptions, options.thumbnails)
+      options.thumbnails = this._opts
+    } else {
+      this._opts = merge({}, dftOptions, options)
+    }
     this._zoomer = this._initZoom()
-    this._drager = this._initDrag()
-    this._graphRect = null        // 可视区域
-    this._brushRect = null        // brush区域，= 可视区域
-    this._brushBaseRect = null    // 用于计算缩放后的brush大小
-    this._brushBoundary = 20      // 防止brush被拖出可视区
-    this._brushMaxScale = 0.95    // brush最大缩放系数，占缩略图比例，防止brush完全溢出缩略图区域
-    this._transform = null
+    this._dragger = this._initDrag()
     this._onUpdate = () => this.update() // drag or simulation end event handler
     this._onStart = () => this._$thumbnails.call(bindStyle({
       width: 0,
@@ -106,34 +142,39 @@ class Thumbnails {
    * @param {DOMObject} $parent 缩略图的父元素，父元素必须是可定位的元素，缩略图相对其绝对定位
    * @param {DOMObject} $graph 原始图DOM，原始图必须含class=[.wrapper]的标签，用于缩放和平移
    */
-  create($parent, $graph, $zoomWrapper, transform) {
+  create($parent, $graph, $zoomWrapper, eventer, transform) {
+    this._eventer = eventer
     this._transform = transform
-    this._$thumbnails = $parent.selectAll('div').data([this._opts])
-    this._$thumbnails.exit().remove()
-    this._$thumbnails = this._$thumbnails.enter().append('div').attr('class', 'thumbnails')
+    this._$thumbnails = $parent.append('div')
+      .attr('class', 'thumbnails')
+      .data([this._opts])
     this._$brush = this._$thumbnails.append('div').attr('class', 'brush')
     this._$graph = $graph
     this._$zoomWrapper = $zoomWrapper
     if (!this._opts.enable) {
       this._opts.style.display = 'none'
     }
+    const hoverHandler = eventer.bind(hover(this._$thumbnails, eventer))
     this._$thumbnails
       .call(bindStyle(this._opts.style))
       .call(this._zoomer)
-      .call(bindHover('thumbnails', this._$thumbnails))
+      .call(hoverHandler)
       .on('wheel', () => {
         event.stopPropagation()
         event.preventDefault()
       })
     this._$brush
       .call(bindStyle(this._opts.brush.style))
-      .call(this._drager)
-    eventer.on('simulation.start', this._onStart)
-    eventer.on('simulation.end', this._onUpdate)
-    eventer.on('drag.start', this._onStart)
-    eventer.on('drag.end', this._onUpdate)
-    eventer.on('zoom.start', this._onStart)
-    eventer.on('zoom.end', this._onZoomEnd)
+      .call(this._dragger)
+    this._eventer.on('graph.update', this._onUpdate)
+    this._eventer.on('simulation.start', this._onStart)
+    this._eventer.on('simulation.end', this._onUpdate)
+    this._eventer.on('drag.start', this._onStart)
+    this._eventer.on('drag.end', this._onUpdate)
+    this._eventer.on('zoom.start', this._onStart)
+    this._eventer.on('zoom.end', this._onZoomEnd)
+    this.update()
+    return this
   }
 
   /**
@@ -182,9 +223,10 @@ class Thumbnails {
       }
       this._calcScaleExtent()
       const graph = this._$graph.node().cloneNode(true)
-      graph.querySelector('.nt-edges-cover').remove()
-      graph.querySelector('.nt-nodes-cover').remove()
-      graph.querySelector('defs').remove()
+      // FIXME: 为了效率，这里依赖了具体的实现，有待改进。实现中不一定存在这些DOM
+      removeDOM(graph.querySelector('.tg-edges-cover'))
+      removeDOM(graph.querySelector('.tg-nodes-cover'))
+      removeDOM(graph.querySelector('defs'))
       const image = genImg(viewBox, graph)
       const style = {
         display: this._opts.style.display,
@@ -203,7 +245,7 @@ class Thumbnails {
       }
       this._$thumbnails.call(bindStyle(style))
       this._$brush.call(bindStyle(pixeled(this._brushRect)))
-      eventer.emit('thumbnails.update')
+      this._eventer.emit('thumbnails.update')
     }
   }
 
@@ -233,13 +275,13 @@ class Thumbnails {
       style.height = this._brushRect.height
     }
     this._$brush.call(bindStyle(pixeled(style)))
-    eventer.emit('thumbnails.update')
+    this._eventer.emit('thumbnails.update')
   }
 
   destroy() {
-    this._drager.on('drag', null)
+    this._dragger.on('drag', null)
     this._zoomer.on('start', null).on('zoom', null)
-    this._$thumbnails.on('wheel', null).call(unBindHover('thumbnails'))
+    this._$thumbnails.on('wheel', null).call(this._eventer.unBind(hover()))
     this._$thumbnails.remove()
     this._$thumbnails = null
     this._$graph = null
@@ -249,13 +291,15 @@ class Thumbnails {
     this._graphRect = null
     this._brushRect = null
     this._brushBaseRect = null
-    eventer.off('simulation.start', this._onStart)
-    eventer.off('simulation.end', this._onUpdate)
-    eventer.off('drag.start', this._onStart)
-    eventer.off('drag.end', this._onUpdate)
-    eventer.off('zoom.start', this._onStart)
-    eventer.off('zoom.end', this._onZoomEnd)
-    eventer.emit('thumbnails.destroy')
+    this._eventer.off('graph.update', this._onUpdate)
+    this._eventer.off('simulation.start', this._onStart)
+    this._eventer.off('simulation.end', this._onUpdate)
+    this._eventer.off('drag.start', this._onStart)
+    this._eventer.off('drag.end', this._onUpdate)
+    this._eventer.off('zoom.start', this._onStart)
+    this._eventer.off('zoom.end', this._onZoomEnd)
+    this._eventer.emit('thumbnails.destroy')
+    this._eventer = null
   }
 
   _calcScaleExtent() {
@@ -297,7 +341,7 @@ class Thumbnails {
       const transform = zoomTransform({}).translate(x, y).scale(1 / k)
       this._$graph.property('__zoom', transform)
       this._$zoomWrapper.attr('transform', `translate(${x}, ${y}) scale(${1 / k})`)
-      eventer.emit('thumbnails.zoom', { x, y, k: 1 / k })
+      this._eventer.emit('thumbnails.zoom', { x, y, k: 1 / k })
     })
   }
 
@@ -334,15 +378,8 @@ class Thumbnails {
         const transform = zoomTransform({}).translate(x, y).scale(k)
         this._$graph.property('__zoom', transform)
         this._$zoomWrapper.attr('transform', `translate(${x}, ${y}) scale(${k})`)
-        eventer.emit('thumbnails.drag', { x, y, k })
+        this._eventer.emit('thumbnails.drag', { x, y, k })
       }
     })
   }
 }
-if (!_.has(options.zoom, 'thumbnails')) {
-  options.zoom.thumbnails = {}
-}
-options.zoom.thumbnails = merge({}, dftOptions, options.zoom.thumbnails)
-const thumbnails = new Thumbnails(options.zoom.thumbnails)
-
-export default thumbnails

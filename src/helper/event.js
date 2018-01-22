@@ -1,17 +1,18 @@
-const eventMap = new Map()
+export default class Eventer {
 
-const eventer = {
+  _eventMap = new Map()
+
   // 外部注册事件
   on(name, handler) {
-    if (eventMap.has(name)) {
-      eventMap.get(name).push(handler)
+    if (this._eventMap.has(name)) {
+      this._eventMap.get(name).push(handler)
     } else {
-      eventMap.set(name, [handler])
+      this._eventMap.set(name, [handler])
     }
-  },
+  }
   // 外部释放事件
   off(name, handler) {
-    const handlers = eventMap.get(name)
+    const handlers = this._eventMap.get(name)
     if (handlers) {
       let i = 0
       while (i < handlers.length) {
@@ -22,13 +23,13 @@ const eventer = {
         i += 1
       }
     }
-  },
+  }
   // 对外派发事件，触发外部 on 注册的事件回调
   emit(name, ...paramters) {
-    _.forEach(eventMap.get(name), handler => {
+    _.forEach(this._eventMap.get(name), handler => {
       handler(...paramters)
     })
-  },
+  }
   // 对内部 $selector 注册事件
   bind(handlers) {
     return $selector => {
@@ -40,7 +41,7 @@ const eventer = {
         })
       })
     }
-  },
+  }
   // 对内部 $selector 解绑事件
   unBind(handlers) {
     return $selector => {
@@ -48,10 +49,9 @@ const eventer = {
         $selector.on(name, null)
       })
     }
-  },
+  }
+
   destroy() {
-    eventMap.clear()
+    this._eventMap.clear()
   }
 }
-
-export default eventer

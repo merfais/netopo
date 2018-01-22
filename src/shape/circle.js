@@ -1,29 +1,16 @@
 import {
   merge
-} from '../util.js'
+} from '../helper'
 import {
-  calcLabelHeight
-} from './index'
+  circleTheme
+} from './theme'
 
 const dftOptions = {
   shape: {
     r: 20,
     cx: null,     // 如果渲染时未提供，则置为r
     cy: null,     // 如果渲染时未提供，则置为r
-    style: {
-      cursor: 'pointer',
-      stroke: '#666',
-      'stroke-width': 0.8,
-      fill: '#e8e8e8',
-    },
-    class: '',
-    hover: {
-      style: {
-        stroke: '#777',
-        fill: '#eee',
-      },
-      class: '',
-    },
+    ...circleTheme.shape,
   },
   label: {
     x: null,  // 如果未提供，则置为 shape.cx
@@ -31,21 +18,11 @@ const dftOptions = {
     width: null, // 如果渲染时未提供，则置为 100
     height: null,
     transform: null, // 如果渲染时未提供，则设置 translate(-50, 0)
-    style: {
-      display: 'flex',
-      color: '#333',
-      'justify-content': 'center',
-      'word-break': 'break-all',
-      'line-height': '1.2em',
-      'padding-top': '5px',
-      'letter-spacing': '0.1em',
-      'font-size': '14px',
-      'box-sizing': 'border-box',
-    },
+    ...circleTheme.label,
   }
 }
 
-function prepareLabel(d) {
+function prepareLabel(d, calcLabelHeight) {
   d.label = merge({}, dftOptions.label, d.label)
   if (d.label.x === null && d.label.y === null) {
     // 当未设置 x y 需要设置默认值
@@ -79,11 +56,11 @@ function prepareShape(d) {
   calcLinkPoint(d)
 }
 
-function prepare(d) {
+function prepareData(d, calcLabelHeight) {
   prepareShape(d)
-  prepareLabel(d)
+  prepareLabel(d, calcLabelHeight)
 }
 
 export default {
-  prepare,
+  prepareData,
 }

@@ -1,28 +1,8 @@
 import {
-  select,
-  namespaces,
-} from 'd3-selection'
-import options from '../options'
-import {
   bindAttr,
-  merge,
-} from '../util.js'
-import {
-  brighterFilter,
-  darkerFilter,
-} from './color'
+} from './util'
 
-const dftOptions = {
-  brighter: {
-    value: 1,
-  },
-  darker: {
-    value: 1
-  },
-  custom: {}
-}
-
-function renderFilter($filter, data) {
+export function renderFilter($filter, data) {
   $filter.call(bindAttr(data.attr))
   _.forEach(data.subNodes, item => {
     if (item.name) {
@@ -32,7 +12,7 @@ function renderFilter($filter, data) {
   })
 }
 
-class Filter {
+export class Filter {
   constructor(options) {
     this._filter = new Map()
     this._last = new Map()
@@ -46,8 +26,6 @@ class Filter {
       }
       this.use(filter)
     })
-    this.use(darkerFilter(options.darker.value))
-    this.use(brighterFilter(options.brighter.value))
   }
 
   get data() {
@@ -100,7 +78,7 @@ class Filter {
     if (!this._last.has(filter.attr.id)) {
       this._filter.set(filter.attr.id, filter)
     } else {
-      this._filter.set(filter.attr.id, this._last.get(filter.id))
+      this._filter.set(filter.attr.id, this._last.get(filter.attr.id))
     }
   }
 
@@ -109,26 +87,3 @@ class Filter {
     this._last.clear()
   }
 }
-
-options.filter = merge({}, dftOptions, options.filter)
-const filter = new Filter(options.filter)
-
-export function renderDefs($defs) {
-  if (filter.data.length) {
-    const $filters = $defs.selectAll('filter').data(filter.data, d => d.id)
-    $filters.exit().remove()
-    $filters.enter().append(d => {
-      const $filter = select(document.createElementNS(namespaces.svg, 'filter'))
-      renderFilter($filter, d)
-      return $filter.node()
-    })
-  }
-  return $defs
-}
-
-export function destroyDefs($defs) {
-  filter.clear()
-  $defs.remove()
-}
-
-export default filter
