@@ -1,0 +1,9 @@
+node_modules/
+build/
+bin/
+config/
+static/
+npm-debug.log
+test/report
+doc/
+demo/
