@@ -1,0 +1,20 @@
+{
+  "presets": [
+    ["env", {
+      "target": {
+        "chrome": 40,
+        "edge": 14,
+        "firefox": 40,
+        "safari": 9
+      },
+      "modules": false
+    }],
+    "stage-2"
+  ],
+  "plugins": [
+    "lodash",
+    // "transform-runtime",
+    "external-helpers"
+  ],
+  "comments": false,
+}

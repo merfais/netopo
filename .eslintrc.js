@@ -1,6 +1,6 @@
 module.exports = {
   root: true,
-  baseConfig: false,
+  // baseConfig: false,
   parser: 'babel-eslint',
   parserOptions: {
     sourceType: 'module',
@@ -8,15 +8,20 @@ module.exports = {
   },
   extends: [
     'airbnb-base',
-    'vue',
   ],
-  // required to lint *.vue files
   plugins: [
-    'html',
-    'vue',
-    'import'
   ],
-  // add your custom rules here
+  env: {
+    'browser': true,
+    'commonjs': true,
+    'es6': true,
+    'amd': true,
+  },
+  globals: {
+  },
+  settings: {
+  },
+  // color: true,
   rules: {
     'import/no-unresolved': 0,
     'import/newline-after-import': 0,
@@ -27,7 +32,6 @@ module.exports = {
     'import/prefer-default-export': 0,
     'import/no-named-as-default': 0,
     'import/no-webpack-loader-syntax': 0,
-     // allow debugger during development
     'no-debugger': process.env.NODE_ENV === 'production' ? 2 : 1,
 
     //usage
@@ -51,6 +55,9 @@ module.exports = {
     'indent': [1, 2, {'SwitchCase': 1}],
     'max-len': [1],
     'new-cap': [1],
+    'newline-per-chained-call': [0, {
+      'ignoreChainWithDepth': 3
+    }],
     'no-bitwise': [0, {
       'allow': ['|', '&']
     }],
@@ -76,11 +83,12 @@ module.exports = {
     }],
     'no-new': [1],
     'no-multiple-empty-lines': [1, { 'max': 2, 'maxEOF': 0, 'maxBOF': 0 }],
-    'no-multi-spaces': [1],
     'no-multi-str': [0],
+    'no-multi-spaces': [1, { ignoreEOLComments: true }],
     'no-unused-vars': [1, {'args': 'none'}],
     'no-unused-expressions': [2, {'allowShortCircuit': true}],
     'no-underscore-dangle': [1, {'allowAfterThis': true}],
+    'no-unneeded-ternary': [1],
     'no-restricted-syntax': [1, 'DebuggerStatement'],
     'no-plusplus': [0, { 'allowForLoopAfterthoughts': true }],
     'no-param-reassign': [0, {
@@ -89,13 +97,16 @@ module.exports = {
     'no-shadow': [0],
     'object-shorthand': [0],
     'object-curly-spacing': [1],
+    'object-curly-newline': [1, { "consistent": true }],
+    'operator-linebreak': [0],
     'one-var': [1],
     'one-var-declaration-per-line': [1, 'initializations'],
     'prefer-arrow-callback': [0],
     'prefer-const': [0],
     'prefer-template': [0],
     'prefer-spread': [1],
-    'padded-blocks': [1],
+    'prefer-destructuring': [0],
+    'padded-blocks': [0, "never"],
     'quotes': [1, 'single', {
       'avoidEscape': true,
       'allowTemplateLiterals': true
@@ -107,24 +118,5 @@ module.exports = {
     'semi': [0],
     'space-before-function-paren': [1, 'never'],
     'space-before-blocks': [1],
-    'no-unneeded-ternary': [1],
-    'newline-per-chained-call': [0, {
-      'ignoreChainWithDepth': 3
-    }],
-    'operator-linebreak': [0],
   },
-  env: {
-    'browser': true,
-    'commonjs': true,
-    'node': true
-  },
-  globals: {
-    '_': true,
-  },
-  settings: {
-    'html/indent': '+2',
-    'html/report-bad-indent': 1
-  },
-  color: true,
 }
-

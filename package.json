@@ -10,6 +10,10 @@
     "build": "node build/build.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "dependencies": {
+    "d3": "^4.12.0",
+    "lodash": "^4.17.4"
+  },
   "devDependencies": {
     "autoprefixer": "^7.1.2",
     "babel-core": "^6.22.1",
@@ -86,9 +90,5 @@
   "bugs": {
     "url": "https://github.com/merfais/netopo/issues"
   },
-  "homepage": "https://github.com/merfais/netopo#readme",
-  "dependencies": {
-    "d3": "^4.12.0",
-    "lodash": "^4.17.4"
-  }
+  "homepage": "https://github.com/merfais/netopo#readme"
 }
