@@ -1,3 +1,8 @@
+import _ from 'lodash'
+import {
+  merge,
+} from './util'
+
 function extendNode(node, key) {
   const rst = {
     _edges: []
@@ -5,8 +10,8 @@ function extendNode(node, key) {
   if (!_.has(node, 'id')) {
     rst.id = key
   }
-  if (!_.isPlainObject(node.linkPoint)) {
-    rst.linkPoint = {}
+  if (!_.isPlainObject(node.linkOffset)) {
+    rst.linkOffset = {}
   }
   return rst
 }
@@ -26,8 +31,8 @@ export default class DataSet {
   _edges = new Map()      // 边集
   _enterNodes = new Map()
   _enterEdges = new Map()
-  _exitNodes = null
-  _exitEdges = null
+  _exitNodes = new Map()
+  _exitEdges = new Map()
   _updateNodes = new Map()
   _updateEdges = new Map()
   // forceLink集，用于力导图，力导图会修改links集的数据结构，所以不能直接使用edges集
@@ -57,19 +62,13 @@ export default class DataSet {
           node._edges = [] // 清理掉edge信息，有可能edge发生变化，set edge时重新生成
           this._nodes.set(id, node)
         } else {
-          node = {
-            ...node,
-            ...extendNode(node, id)
-          }
+          merge(node, extendNode(node, id))
           this._nodes.set(id, node)
           this._updateNodes.set(id, node)
         }
         this._exitNodes.delete(id)
       } else {
-        node = {
-          ...node,
-          ...extendNode(node, id) // 数据变化会生成新的数据索引等信息
-        }
+        merge(node, extendNode(node, id))
         this._nodes.set(id, node)
         this._enterNodes.set(id, node)
       }
@@ -96,10 +95,7 @@ export default class DataSet {
       })
       this._addEdgeToNode(id, edge.source)
       this._addEdgeToNode(id, edge.target)
-      edge = {
-        ...edge,
-        ...extendEdge(edge, id)
-      }
+      merge(edge, extendEdge(edge, id))
       // edge不使用diff，因为edge的位置信息根据node的位置计算得出，
       // 很可能edge本身无变化，但连接的node位置发生变化，所以edge需要渲染
       // dataSet集决定哪些需要重新渲染，所以无法在渲染时再决定dataSet集

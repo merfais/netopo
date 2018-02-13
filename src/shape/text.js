@@ -29,8 +29,8 @@ function calcLinkPoint(d) {
   const y = parseFloat(d.label.y) || 0
   const width = parseFloat(d.label.width) || 0
   const height = parseFloat(d.label.height) || 0
-  d.linkPoint.x = d.linkPoint.x || x + width / 2
-  d.linkPoint.y = d.linkPoint.y || y + height / 2
+  d.linkOffset.x = d.linkOffset.x || x + width / 2
+  d.linkOffset.y = d.linkOffset.y || y + height / 2
 }
 
 function prepareLabel(d, calcLabelHeight) {

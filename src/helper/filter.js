@@ -1,8 +1,13 @@
+import _ from 'lodash'
 import {
-  bindAttr,
+  select,
+  namespaces
+} from 'd3-selection'
+import {
+  bindAttr
 } from './util'
 
-export function renderFilter($filter, data) {
+function renderFilter($filter, data) {
   $filter.call(bindAttr(data.attr))
   _.forEach(data.subNodes, item => {
     if (item.name) {
@@ -12,20 +17,10 @@ export function renderFilter($filter, data) {
   })
 }
 
-export class Filter {
-  constructor(options) {
+export default class Filter {
+  constructor() {
     this._filter = new Map()
     this._last = new Map()
-
-    _.forEach(options.custom, (filter, key) => {
-      if (!_.has(filter, 'attr')) {
-        filter.attr = {}
-      }
-      if (!_.has(filter.attr, 'id')) {
-        filter.attr.id = key
-      }
-      this.use(filter)
-    })
   }
 
   get data() {
@@ -80,6 +75,12 @@ export class Filter {
     } else {
       this._filter.set(filter.attr.id, this._last.get(filter.attr.id))
     }
+  }
+
+  render(filter) {
+    const $filter = select(document.createElementNS(namespaces.svg, 'filter'))
+    renderFilter($filter, filter)
+    return $filter.node()
   }
 
   clear() {

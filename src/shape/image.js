@@ -1,3 +1,4 @@
+import _ from 'lodash'
 import {
   merge
 } from '../helper'
@@ -47,8 +48,8 @@ function calcLinkPoint(d) {
   const y = parseFloat(d.shape.y) || 0
   const width = parseFloat(d.shape.width) || 0
   const height = parseFloat(d.shape.height) || 0
-  d.linkPoint.x = d.linkPoint.x || x + width / 2
-  d.linkPoint.y = d.linkPoint.y || y + height / 2
+  d.linkOffset.x = d.linkOffset.x || x + width / 2
+  d.linkOffset.y = d.linkOffset.y || y + height / 2
 }
 
 function prepareShape(d) {

@@ -1,6 +1,6 @@
+import _ from 'lodash'
 import {
   select,
-  namespaces,
 } from 'd3-selection'
 import {
   bindStyle,
@@ -14,9 +14,6 @@ import {
   Zoom,
   Drag,
   Filter,
-  renderFilter,
-  darkerFilter,
-  brighterFilter,
 } from './helper'
 import {
   renderNodes,
@@ -28,6 +25,9 @@ import {
   updateEdges,
   destroyEdges,
 } from './edge'
+import {
+  renderFilters
+} from './defs'
 
 function getRect(dom) {
   if (dom) {
@@ -90,13 +90,17 @@ function dftOptions() {
       },
       tooltip: {
         enable: true,
+        formatter: d => `${d.label.text || d.id}: ${d.value}`,
       },
       drag: {
         enable: true,
       },
     },
     edge: {
-      dashArray: '',
+      shape: {
+        type: 'line',
+      },
+      path: [],
       hoverBoundarySpan: 10,
       shadow: {
         enable: false,  // edge shadow有非常大的性能问题，慎用
@@ -105,15 +109,15 @@ function dftOptions() {
       },
       tooltip: {
         enable: true,
-      },
-      path: {
-        type: 'line',
+        formatter: d => `${d.source} -> ${d.target}: ${d.value}`
       },
     },
     tooltip: {
+      // style
     },
     zoom: {
       thumbnails: {
+        // style
       },
     },
     resize: {
@@ -171,7 +175,7 @@ export default class TopoGraph {
     this.options = merge(dftOptions(), opts)
     this.ds = new DataSet()
     this.eventer = new Eventer()
-    this.filter = new Filter(this.options.filter)
+    this.filter = new Filter()
     this._createGraph(dom)
     this._onResize = this._createResizeHandler()
     if (this._onResize) {
@@ -205,18 +209,36 @@ export default class TopoGraph {
     return this
   }
 
+  getOptionsRef() {
+    return this.options
+  }
+
   resize() {
     this._onResize()
     return this
   }
 
-  on(name, handler) {
-    this.eventer.on(name, handler)
+  on(names, handler) {
+    if (typeof names === 'string') {
+      names = [names]
+    } else if (!_.isArray(names)) {
+      throw new Error('event name type should be string or Array[string]')
+    }
+    _.forEach(names, name => {
+      this.eventer.on(name, handler)
+    })
     return this
   }
 
-  off(name, handler) {
-    this.eventer.off(name, handler)
+  off(names, handler) {
+    if (typeof names === 'string') {
+      names = [names]
+    } else if (!_.isArray(names)) {
+      throw new Error('event name type should be string or Array[string]')
+    }
+    _.forEach(names, name => {
+      this.eventer.off(name, handler)
+    })
     return this
   }
 
@@ -255,8 +277,8 @@ export default class TopoGraph {
     }))
     // 添加一个隐藏DIV用于生成节点时计算文字高度
     this.calcLabelHeight = genCalcLabelHeigth(this.$root)
-    this.tooltip = new Tooltip(this.options, this.ds)
-      .create(this.$root, this.ds, this.eventer)
+    this.tooltip = new Tooltip(this.options)
+      .create(this.$root, this.eventer, this.ds)
     this.$graphWrapper = this.$root.append('div').call(bindStyle({
       position: 'relative',
       overflow: 'hidden',
@@ -282,9 +304,9 @@ export default class TopoGraph {
   _update() {
     renderNodes(this)
     renderEdges(this)
-    this._renderDefs()
-    this.simulation.update(this.ds.nodes, this.ds.links)
+    renderFilters(this.$defs, this.filter, this.options.filter)
     this.zoom.update()
+    this.simulation.update(this.ds.nodes, this.ds.links)
   }
 
   _createResizeHandler() {
@@ -306,27 +328,12 @@ export default class TopoGraph {
             wrapperRect = rect
           }
           if (scale !== 1) {
-            this.zoom.resizeZoom(rect, scale)
+            this.zoom.resizeZoom(scale, rect)
           }
         }
       }
     } else {
       return null
-    }
-  }
-
-  _renderDefs() {
-    this.filter.use(darkerFilter(this.options.filter.darker.value))
-    this.filter.use(brighterFilter(this.options.filter.brighter.value))
-    if (this.filter.data.length) {
-      const $filters = this.$defs.selectAll('filter')
-        .data(this.filter.data, d => d.attr.id)
-      $filters.exit().remove()
-      $filters.enter().append(d => {
-        const $filter = select(document.createElementNS(namespaces.svg, 'filter'))
-        renderFilter($filter, d)
-        return $filter.node()
-      })
     }
   }
 }

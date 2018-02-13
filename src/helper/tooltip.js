@@ -1,3 +1,4 @@
+import _ from 'lodash'
 import {
   event as d3Event
 } from 'd3-selection'
@@ -29,22 +30,6 @@ const dftOptions = {
   enable: true,
   gap: 20,
   style: theme,
-}
-
-const dftFormatter = (type, ds) => {
-  if (type === 'node') {
-    return d => `${d.label.text || d.id}: ${d.value}`
-  } else if (type === 'edge') {
-    return d => {
-      let source = ds.nodeMap.get(d.source)
-      source = source ? (source.label.text || source.id) : d.source
-      let target = ds.nodeMap.get(d.target)
-      target = target ? (target.label.text || target.id) : d.target
-      return `${source} -> ${target}: ${d.value}`
-    }
-  } else {
-    return d => `${d.value}`
-  }
 }
 
 function updatePosition(viewerRect, tipRect, gap) {
@@ -81,6 +66,7 @@ export default class Tooltip {
   _$tip = null
   _ds = null
   _eventer = null
+  _noError = true
 
   constructor(options) {
     if (_.has(options, 'tooltip')) {
@@ -89,11 +75,15 @@ export default class Tooltip {
     } else {
       this._opts = merge({}, dftOptions, options)
     }
-    this._onDragStart = () => (this._opts.enable = false)
-    this._onDragEnd = () => (this._opts.enable = true)
+    this._onDragStart = () => {
+      this._opts.enable = false
+    }
+    this._onDragEnd = () => {
+      this._opts.enable = true
+    }
   }
 
-  create($viewer, ds, eventer) {
+  create($viewer, eventer, ds) {
     this._ds = ds
     this._eventer = eventer
     this._$viewer = $viewer
@@ -102,6 +92,7 @@ export default class Tooltip {
       .call(bindStyle(this._opts.style))
     this._eventer.on('drag.start', this._onDragStart)
     this._eventer.on('drag.end', this._onDragEnd)
+    this._eventer.emit('tooltip.create')
     return this
   }
 
@@ -109,30 +100,47 @@ export default class Tooltip {
     if (!_.isObject(d)) {
       throw new Error('d is required when use tooltip')
     }
-    d.tooltip = d.tooltip || {}
-    this._enable = d.tooltip.enable
+    let tooltip
+    if (_.has(d, 'tooltip')) {
+      tooltip = d.tooltip
+    } else {
+      tooltip = d
+    }
+    if (!_.has(tooltip, 'enable')) {
+      throw new Error('tooltip.enable is required')
+    }
+    this._enable = tooltip.enable
     if (this._enable) {
       this._eventer.emit('tooltip.show')
-      const type = _.has(d, 'shape') ? 'node' : 'edge'
-      let formatter = dftFormatter(type, this._ds)
-      if (_.isFunction(d.tooltip.formatter)) {
-        formatter = d.tooltip.formatter
-      }
-      const html = formatter(d)
-      if (!_.isString(html)) {
-        throw new Error('tooltip.formatter must return a string')
-      }
-      if (html) {
-        this._$tip.html(html)
-        this.update()
+      let formatter
+      if (_.isFunction(this._opts.formatter)) {
+        formatter = this._opts.formatter
+      } else if (_.isFunction(tooltip.formatter)) {
+        formatter = tooltip.formatter
       } else {
-        this._enable = false
+        formatter = d => `${d.value}`
+      }
+      this._noError = true
+      try {
+        const html = formatter(d)
+        if (!_.isString(html)) {
+          throw new Error('tooltip.formatter must return a string')
+        }
+        if (html) {
+          this._$tip.html(html)
+          this.update()
+        } else {
+          this._enable = false
+        }
+      } catch (e) {
+        this._noError = false
+        throw e
       }
     }
   }
 
   update() {
-    if (this._enable) {
+    if (this._enable && this._noError) {
       const viewerRect = this._$viewer.node().getBoundingClientRect()
       const tipRect = this._$tip.node().getBoundingClientRect()
       const { left, top } = updatePosition(viewerRect, tipRect, this._opts.gap)

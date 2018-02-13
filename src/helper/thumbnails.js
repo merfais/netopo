@@ -1,3 +1,4 @@
+import _ from 'lodash'
 import {
   event,
 } from 'd3-selection'
@@ -46,6 +47,7 @@ const dftOptions = {
   height: 200,
   maxWidth: 200,      // 只支持px，防止缩略图过大
   minWidth: 150,      // 只支持px，防止缩略图过小
+  minHeight: 100,      // 只支持px，防止缩略图过小
   scale: 1 / 6,       // 缩略图占可视区的比例，超过maxWidth会缩小
   spread: {           // 缩略图是否完全展开显示，防止缩略图过大遮盖大片的原图区域
     always: false,    // 默认使用小缩略图，hover时放大
@@ -94,6 +96,14 @@ function hover($thumbnails, eventer) {
   }
 }
 
+export function bindTransform($zoomWrapper, $subscriber, transform) {
+  const { x, y, k } = transform
+  transform = `translate(${x}, ${y}) scale(${k})`
+  $zoomWrapper.attr('transform', transform)
+  transform = zoomTransform({}).translate(x, y).scale(k)
+  $subscriber.property('__zoom', transform)
+}
+
 export default class Thumbnails {
 
   _$thumbnails = null
@@ -114,12 +124,17 @@ export default class Thumbnails {
   _onStart = null
   _onZoomEnd = null
 
-  constructor(options) {
+  constructor(options, transform) {
     if (_.has(options, 'thumbnails')) {
       this._opts = merge({}, dftOptions, options.thumbnails)
       options.thumbnails = this._opts
     } else {
       this._opts = merge({}, dftOptions, options)
+    }
+    if (_.has(options, 'transform')) {
+      this._transform = options.transform
+    } else {
+      this._transform = transform || { x: 0, y: 0, k: 1 }
     }
     this._zoomer = this._initZoom()
     this._dragger = this._initDrag()
@@ -142,9 +157,8 @@ export default class Thumbnails {
    * @param {DOMObject} $parent 缩略图的父元素，父元素必须是可定位的元素，缩略图相对其绝对定位
    * @param {DOMObject} $graph 原始图DOM，原始图必须含class=[.wrapper]的标签，用于缩放和平移
    */
-  create($parent, $graph, $zoomWrapper, eventer, transform) {
+  create($parent, $graph, $zoomWrapper, eventer) {
     this._eventer = eventer
-    this._transform = transform
     this._$thumbnails = $parent.append('div')
       .attr('class', 'thumbnails')
       .data([this._opts])
@@ -166,13 +180,13 @@ export default class Thumbnails {
     this._$brush
       .call(bindStyle(this._opts.brush.style))
       .call(this._dragger)
-    this._eventer.on('graph.update', this._onUpdate)
     this._eventer.on('simulation.start', this._onStart)
     this._eventer.on('simulation.end', this._onUpdate)
     this._eventer.on('drag.start', this._onStart)
     this._eventer.on('drag.end', this._onUpdate)
     this._eventer.on('zoom.start', this._onStart)
     this._eventer.on('zoom.end', this._onZoomEnd)
+    this._eventer.emit('thumbnails.create')
     this.update()
     return this
   }
@@ -206,6 +220,9 @@ export default class Thumbnails {
         this._opts.scale = this._opts.maxWidth / viewBox.width
       } else if (viewBox.width * this._opts.scale < this._opts.minWidth) {
         this._opts.scale = this._opts.minWidth / viewBox.width
+      }
+      if (viewBox.height * this._opts.scale < this._opts.minHeight) {
+        this._opts.scale = this._opts.minHeight / viewBox.height
       }
       this._opts.width = viewBox.width * this._opts.scale
       this._opts.height = viewBox.height * this._opts.scale
@@ -291,7 +308,6 @@ export default class Thumbnails {
     this._graphRect = null
     this._brushRect = null
     this._brushBaseRect = null
-    this._eventer.off('graph.update', this._onUpdate)
     this._eventer.off('simulation.start', this._onStart)
     this._eventer.off('simulation.end', this._onUpdate)
     this._eventer.off('drag.start', this._onStart)
@@ -342,6 +358,8 @@ export default class Thumbnails {
       this._$graph.property('__zoom', transform)
       this._$zoomWrapper.attr('transform', `translate(${x}, ${y}) scale(${1 / k})`)
       this._eventer.emit('thumbnails.zoom', { x, y, k: 1 / k })
+    }).on('end', () => {
+      this._eventer.emit('thumbnails.zoomend')
     })
   }
 
@@ -380,6 +398,8 @@ export default class Thumbnails {
         this._$zoomWrapper.attr('transform', `translate(${x}, ${y}) scale(${k})`)
         this._eventer.emit('thumbnails.drag', { x, y, k })
       }
+    }).on('end', () => {
+      this._eventer.emit('thumbnails.dragend')
     })
   }
 }

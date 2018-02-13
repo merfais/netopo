@@ -1,3 +1,4 @@
+import _ from 'lodash'
 import {
   select,
   namespaces,
@@ -56,8 +57,12 @@ function events($parent, eventer, tooltip) {
 function prepareNode(d, filter, calcLabelHeight) {
   const { shapeProp, labelProp } = genNodeProp(d, filter, calcLabelHeight)
   d.position = merge({ x: 0, y: 0 }, d.position)
-  d.linkPoint.x += d.position.x
-  d.linkPoint.y += d.position.y
+  if (!(d.linkPoint && _.has(d.linkPoint, 'x') && _.has(d.linkPoint, 'y'))) {
+    d.linkPoint = {
+      x: d.position.x + d.linkOffset.x,
+      y: d.position.y + d.linkOffset.y,
+    }
+  }
   d.id2 = d.id + '_cover'
   const attr = {
     id: d.id,

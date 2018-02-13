@@ -1,3 +1,4 @@
+import _ from 'lodash'
 import {
   event,
   select,
@@ -82,6 +83,7 @@ export default class Drag {
     }
     this._$zoomWrapper = $zoomWrapper
     this._dragger = this._initDrag()
+    this._eventer.emit('drag.create')
     return this
   }
 
@@ -96,10 +98,10 @@ export default class Drag {
   destroy() {
     this._dragger.on('start', null).on('drag', null).on('end', null)
     this._dragger = null
-    this._eventer.emit('drag.destroy')
-    this._eventer = null
     this._opts = null
     this._$zoomWrapper = null
+    this._eventer.emit('drag.destroy')
+    this._eventer = null
   }
 
   _initDrag() {
@@ -107,28 +109,30 @@ export default class Drag {
     const eventer = this._eventer
     const wrapper = this._$zoomWrapper.node()
     let draggerNode
-    let dragging = false
+    let dragOffset
     return drag().on('start', d => {
-      dragging = false
+      dragOffset = 0
+      draggerNode = null
       if (d.drag.enable) {
         eventer.emit('drag.start', event, d)
       }
     }).on('drag', function(d) {
       if (d.drag.enable) {
-        if (dragging) {
+        dragOffset += event.dx ** 2 + event.dy ** 2
+        if (draggerNode) {
           moveVirtualNode(d, draggerNode)
           eventer.emit('drag.dragging', event, d)
-        } else {
-          dragging = true
+        } else if (dragOffset > 10) {
           draggerNode = createVirtualNode(d, this, virtualNodeStyle)
           wrapper.appendChild(draggerNode)
         }
       }
     }).on('end', d => {
+      dragOffset = 0
       if (d.drag.enable) {
-        if (dragging) {
-          dragging = false
+        if (draggerNode) {
           wrapper.removeChild(draggerNode)
+          draggerNode = null
           d.position.x += event.dx
           d.position.y += event.dy
           d.linkPoint.x += event.dx
@@ -137,6 +141,6 @@ export default class Drag {
         }
         eventer.emit('drag.end', event, d)
       }
-    }).clickDistance(10)
+    })
   }
 }

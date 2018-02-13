@@ -1,3 +1,4 @@
+import _ from 'lodash'
 import {
   genShadow,
   merge,
@@ -7,6 +8,7 @@ import circle from './circle'
 import image from './image'
 import label from './text'
 import line from './line'
+import multiLine from './multiLine'
 
 function genShapeProp(d, filter) {
   // 阴影
@@ -97,48 +99,59 @@ export function genNodeProp(d, filter, calcLabelHeight) {
 
 const pathShapes = {
   line,
+  multiLine,
 }
 
 export function genEdgeProp(d, filter) {
-  const edge = pathShapes[d.path.type]
+  const edge = pathShapes[d.shape.type]
   if (!edge) {
-    throw new Error(`edge type: ${d.path.type} is not supported`)
+    throw new Error(`edge type: ${d.shape.type} is not supported`)
   }
   edge.prepareData(d)
-  if (d.shadow.enable !== false) {
+  if (d.shadow.enable !== false && d.shape.type !== 'multiLine') {
     // FIXME: 开启filter会有性能问题
     const shadow = genShadow(d.shadow, filter)
-    d.path.style.filter = shadow.styleFilter
-    if (_.isObject(d.path.hover) && _.isObject(d.path.hover.style)) {
-      d.path.hover.style.filter = shadow.hoverFilter
+    const path = d.path[0] || {}
+    path.style.filter = shadow.styleFilter
+    if (_.isObject(path.hover) && _.isObject(path.hover.style)) {
+      path.hover.style.filter = shadow.hoverFilter
     }
   }
-  if (d.dashArray) {
-    merge(d.path.style, {
-      'stroke-dasharray': d.dashArray
-    })
-    merge(d.path.hover, {
-      style: {
-        'stroke-dasharray': d.dashArray
-      }
-    })
-  }
-  const attr = { ...d.path }
-  const style = attr.style
-  delete attr.style
-  delete attr.hover
-  const prop = {
-    attr,
-    style,
-  }
-  const prop2 = {
-    style: merge({}, prop.style, {
-      opacity: 0,
-      'stroke-width': d.hoverBoundarySpan,
-      'stroke-dasharray': null,
-      filter: null,
-    }),
-    attr: {}
-  }
-  return { prop, prop2 }
+  const pathProp = []
+  const pathProp2 = []
+  _.forEach(d.path, path => {
+    const dashArray = path.dashArray
+    if (dashArray) {
+      merge(path.style, {
+        'stroke-dasharray': dashArray
+      })
+      merge(path.hover, {
+        style: {
+          'stroke-dasharray': dashArray
+        }
+      })
+    }
+    const attr = { ...path }
+    const style = attr.style
+    delete attr.style
+    delete attr.dasharray
+    delete attr.key
+    delete attr.hover
+    const prop = {
+      attr,
+      style,
+    }
+    const prop2 = {
+      style: merge({}, prop.style, {
+        opacity: 0,
+        'stroke-width': d.hoverBoundarySpan,
+        'stroke-dasharray': null,
+        filter: null,
+      }),
+      attr: {}
+    }
+    pathProp.push(prop)
+    pathProp2.push(prop2)
+  })
+  return { pathProp, pathProp2 }
 }

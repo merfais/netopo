@@ -1,3 +1,4 @@
+import _ from 'lodash'
 import {
   forceSimulation,
   forceManyBody,
@@ -112,12 +113,13 @@ export default class Simulation {
     this._$graph = $graph
     this._updateNodes = update.nodes
     this._updateEdges = update.edges
+    this._eventer.emit('simulation.create')
     return this
   }
 
   update(nodes, links) {
+    this._eventer.emit('simulation.start')
     if (this._opts.enable && !(_.isEmpty(nodes) && _.isEmpty(links))) {
-      this._eventer.emit('simulation.start')
       // 更新前清除位置信息，重新生成
       // 使用旧的位置信息，会导致图形慢慢向外延展，而不会收敛
       _.forEach(nodes, node => {
@@ -138,7 +140,7 @@ export default class Simulation {
     } else {
       this.stop()
       this._simulator.on('tick', null).on('end', null)
-      this._eventer.emit('graph.update')
+      this._eventer.emit('simulation.end')
     }
   }
 

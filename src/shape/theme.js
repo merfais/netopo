@@ -144,12 +144,14 @@ export const pathTheme = {
     stroke: normal.pathColor,
     'stroke-width': 2,
     cursor: 'pointer',
+    fill: 'none',
   },
   class: '',
   hover: {
     style: {
       stroke: hover.pathColor,
-      'stroke-width': 3
+      'stroke-width': 3,
+      fill: 'none',
     },
     class: '',
   }

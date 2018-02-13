@@ -1,3 +1,4 @@
+import _ from 'lodash'
 import {
   merge
 } from '../helper'
@@ -42,8 +43,8 @@ function prepareLabel(d, calcLabelHeight) {
 }
 
 function calcLinkPoint(d) {
-  d.linkPoint.x = d.linkPoint.x || parseFloat(d.shape.cx) || 0
-  d.linkPoint.y = d.linkPoint.y || parseFloat(d.shape.cy) || 0
+  d.linkOffset.x = d.linkOffset.x || parseFloat(d.shape.cx) || 0
+  d.linkOffset.y = d.linkOffset.y || parseFloat(d.shape.cy) || 0
 }
 
 function prepareShape(d) {

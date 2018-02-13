@@ -5,6 +5,7 @@ import Thumbnails from './thumbnails'
 import DataSet from './dataSet'
 import Simulation from './simulation'
 import Zoom from './zoom'
+import Filter from './filter'
 
 export {
   Eventer,
@@ -14,16 +15,12 @@ export {
   Simulation,
   Zoom,
   Tooltip,
-}
-export {
   Filter,
-  renderFilter,
-} from './filter'
+}
 export {
   uuid,
   merge,
   setNull,
-  exportFn,
   bindAttr,
   bindStyle,
   bindClass,
