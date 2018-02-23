@@ -8,7 +8,7 @@ netopo将原来作用于拓扑图的滚轮事件转移到缩略图上，
 通过对缩略图上的可视区的缩放来完成拓扑图的缩放，因此，
 在缩略图区域外的滚轮事件仍用于屏幕的滚动，提升了用户体验。
 
-[Demo地址](https://merfais.github.io/netopo/)
+## [点击查看 Demo](https://merfais.github.io/netopo/)
 
 ## 获取 netopo
 
@@ -763,21 +763,21 @@ node相关
 
 + node.hover(d, i, nodes)：hover节点时派发
 
-  参数说明参考[d3-selection.event](https://github.com/d3/d3-selection# Handling Events)
+  参数说明参考[d3-selection.event](https://github.com/d3/d3-selection#handling-events)
 
 + node.click(d, i, nodes)：click节点时派发
 
-  参数说明参考[d3-selection.event](https://github.com/d3/d3-selection# Handling Events)
+  参数说明参考[d3-selection.event](https://github.com/d3/d3-selection#handling-events)
 
 edge相关
 
 + edge.hover(d, i, nodes)：hover节点时派发
 
-  参数说明参考[d3-selection.event](https://github.com/d3/d3-selection# Handling Events)
+  参数说明参考[d3-selection.event](https://github.com/d3/d3-selection#handling-events)
 
 + edge.click(d, i, nodes)：click节点时派发
 
-  参数说明参考[d3-selection.event](https://github.com/d3/d3-selection# Handling Events)
+  参数说明参考[d3-selection.event](https://github.com/d3/d3-selection#handling-events)
 
 drag相关
 
@@ -787,19 +787,19 @@ drag相关
 
 + drag.start(event, d): 转发d3.drag.event.start事件
 
-  + event: 参考[d3-drag.event](https://github.com/d3/d3-drag#Drag Events)
+  + event: 参考[d3-drag.event](https://github.com/d3/d3-drag#drag-events)
 
   + d: 被拖拽节点的data引用
 
 + drag.dragging(event, d): 转发d3.drag.event.drag事件
 
-  + event: 参考[d3-drag.event](https://github.com/d3/d3-drag#Drag Events)
+  + event: 参考[d3-drag.event](https://github.com/d3/d3-drag#drag-events)
 
   + d: 被拖拽节点的data引用
 
 + drag.end(event, d): 转发d3.drag.event.end事件
 
-  + event: 参考[d3-drag.event](https://github.com/d3/d3-drag#Drag Events)
+  + event: 参考[d3-drag.event](https://github.com/d3/d3-drag#drag-events)
 
   + d: 被拖拽节点的data引用
 
@@ -874,19 +874,19 @@ zoom相关
 
 + zoom.start(event, transform): 转发d3.zoom.event.start事件
 
-  + event: 参考[d3-zoom.event](https://github.com/d3/d3-zoom#Zoom Events)
+  + event: 参考[d3-zoom.event](https://github.com/d3/d3-zoom#zoom-events)
 
   + transform: 拓扑图当前transform值
 
 + zoom.zooming(): 转发d3.zoom.event.zoom事件
 
-  + event: 参考[d3-zoom.event](https://github.com/d3/d3-zoom#Zoom Events)
+  + event: 参考[d3-zoom.event](https://github.com/d3/d3-zoom#zoom-events)
 
   + transform: 拓扑图当前transform值
 
 + zoom.end(): 转发d3.zoom.event.end事件
 
-  + event: 参考[d3-zoom.event](https://github.com/d3/d3-zoom#Zoom Events)
+  + event: 参考[d3-zoom.event](https://github.com/d3/d3-zoom#zoom-events)
 
   + transform: 拓扑图当前transform值
 
