@@ -13,7 +13,7 @@
   ],
   "plugins": [
     "lodash",
-    // "transform-runtime",
+    "transform-runtime",
     "external-helpers"
   ],
   "comments": false,
