@@ -9,7 +9,7 @@ import {
   zoom,
   zoomTransform,
 } from 'd3-zoom'
-import { Base64 } from 'js-base64'
+import base64 from './base64'
 import {
   merge,
   bindStyle,
@@ -78,7 +78,7 @@ function genImg(rect, svg) {
   const viewBox = `${rect.left} ${rect.top} ${rect.width} ${rect.height}`
   svg.setAttribute('viewBox', viewBox)
   const s = new XMLSerializer().serializeToString(svg)
-  return 'data:image/svg+xml;base64,' + Base64.encode(s)
+  return 'data:image/svg+xml;base64,' + base64.encode(s)
 }
 
 function hover($thumbnails, eventer) {

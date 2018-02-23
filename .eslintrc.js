@@ -47,6 +47,7 @@ module.exports = {
     'eol-last': [0, 'unix'],
     'eqeqeq': [2],
     'func-names': [1, 'never'],
+    'function-paren-newline': [1, 'consistent'],
     'global-require': [0],
     'guard-for-in': [2],
     'key-spacing': [1],

@@ -80,16 +80,16 @@ export default class Zoom {
       }
       this._bindParams()
       this._zoomer.on('start', () => {
-        this._eventer.emit('zoom.start', this._opts.transform)
+        this._eventer.emit('zoom.start', event, this._opts.transform)
       }).on('zoom', () => {
         const transform = { ...event.transform }
         const dx = transform.x - this._opts.transform.x
         const dy = transform.y - this._opts.transform.y
         merge(this._opts.transform, transform)
         this._zoom(dx, dy)
-        this._eventer.emit('zoom.zooming', event)
+        this._eventer.emit('zoom.zooming', event, this._opts.transform)
       }).on('end', () => {
-        this._eventer.emit('zoom.end')
+        this._eventer.emit('zoom.end', event, this._opts.transform)
       })
     } else {
       this._zoomer.on('start', null).on('zoom', null).on('end', null)
