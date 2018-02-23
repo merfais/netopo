@@ -1,22 +1,26 @@
 <template>
   <div id="app">
-    <router-view/>
+    <graph/>
   </div>
 </template>
 
 <script>
+  import Graph from './Netopo.vue'
+
   export default {
     name: 'app',
+    components: {
+      Graph,
+    }
   };
 </script>
 
-<style>
+<style scoped>
 #app {
   font-family: 'Avenir', Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  text-align: center;
   color: #2c3e50;
-  margin-top: 60px;
+  margin: 60px;
 }
 </style>

@@ -10,7 +10,7 @@
 </template>
 
 <script>
-  import Graph from 'dist/netopo.js'
+  import Graph from 'demo/js/netopo.esm.js'
   import Loading from './Loading.vue'
 
   export default {
@@ -27,7 +27,7 @@
       },
       height: {
         type: String,
-        default: '500px',
+        default: '600px',
       },
       width: {
         type: String,
@@ -98,7 +98,7 @@
           }
           this.loading = false
         }).catch(err => {
-          ys.log(err)
+          console.log(err)
           this.message = 'Error'
           this.loading = false
         })

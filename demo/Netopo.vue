@@ -1,56 +1,53 @@
 <template>
-  <div>
-    <div class='container'>
-      <div class='md-6'>
-        <p>多连接、自动位置模拟 拓扑图</p>
-        <graph class='graph'
-          :data='multiLineData'
-          :options='multiLineOpts'
-          @edgeClick='edgeClick1'
-        >
-        </graph>
-      </div>
-      <div class='md-6'>
-        <p>单连接、自动位置模拟 拓扑图</p>
-        <graph class='graph'
-          :data='forceData'
-          :options='forceOpts'
-          @edgeClick='edgeClick2'
-        >
-        </graph>
-      </div>
-      <div class='md-6'>
-        <vue-button @click='save'>保存</vue-button>
-        <vue-button @click='read'>读取</vue-button>
-        <span>将当前拓扑缓存到sessionStorage，刷新后，可读取上次缓存的拓扑</span>
-        <p>单连接、固定位置、可缓存位置 拓扑图</p>
-        <graph class='graph'
-          :data='fixedData'
-          :options='fixedOpts'
-          @renderEnd='renderEnd'
-        >
-        </graph>
-      </div>
-      <div class='md-6'>
-        <vue-button @click='click5'>占位</vue-button>
-        <p>单连接、自动位置模拟、带闭环 拓扑图</p>
-        <graph class='graph'
-          :data='circleData'
-          :options='circleOpts'
-        >
-        </graph>
-      </div>
+  <div class='container'>
+    <div class='md-8'>
+      <p>单连接、自动位置模拟 拓扑图</p>
+      <graph class='graph'
+        :data='forceData'
+        :options='forceOpts'
+        @edgeClick='edgeClick2'
+      >
+      </graph>
     </div>
-    <br>
-    <br>
-    <br>
-    <br>
+    <div class='md-8'>
+      <p>多连接、自动位置模拟 拓扑图</p>
+      <graph class='graph'
+        :data='multiLineData'
+        :options='multiLineOpts'
+        @edgeClick='edgeClick1'
+      >
+      </graph>
+    </div>
+    <div class='md-8'>
+      <vue-button @click='save'>保存</vue-button>
+      <vue-button @click='read'>读取</vue-button>
+      <span>将当前拓扑缓存到sessionStorage，刷新后，可读取上次缓存的拓扑</span>
+      <p>单连接、固定位置、可缓存位置 拓扑图</p>
+      <graph class='graph'
+        :data='fixedData'
+        :options='fixedOpts'
+        @renderEnd='renderEnd'
+      >
+      </graph>
+    </div>
+    <div class='md-8'>
+      <vue-button @click='click5'>占位</vue-button>
+      <p>单连接、自动位置模拟、带闭环 拓扑图</p>
+      <graph class='graph'
+        :data='circleData'
+        :options='circleOpts'
+      >
+      </graph>
+    </div>
   </div>
 </template>
 
 <script>
   import Graph from './components/Graph'
   import VueButton from './components/Button.vue'
+  import {
+    genSimpleGraph
+  } from './js/graph'
 
   export default {
     components: {
@@ -60,7 +57,15 @@
     data() {
       return {
         forceData: null,
-        forceOpts: {},
+        forceOpts: {
+          simulation: {
+            force: {
+              link: {
+                strength: null,
+              }
+            }
+          }
+        },
         multiLineData: null,
         multiLineOpts: {
           edge: {
@@ -279,10 +284,7 @@
       },
       render() {
         this.forceData = Promise.resolve().then(() => {
-          return {
-            nodes: this.genNetworkNode(120),
-            edges: this.genNetworkEdge(300, 120),
-          }
+          return genSimpleGraph()
         })
         this.multiLineData = Promise.resolve().then(() => {
           return {
@@ -317,11 +319,16 @@
   .container {
     display: flex;
     flex-wrap: wrap;
-    border: 1px solid #333;
+    justify-content: center;
   }
   .md-6 {
     flex-basis: 50%;
     max-width: 50%;
+    overflow: hidden;
+  }
+  .md-8 {
+    flex-basis: 66.66%;
+    max-width: 66.66%;
     overflow: hidden;
   }
   .graph {

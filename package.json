@@ -11,14 +11,6 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
-    "d3-color": "^1.0.3",
-    "d3-drag": "^1.2.1",
-    "d3-force": "^1.1.0",
-    "d3-path": "^1.0.5",
-    "d3-selection": "^1.2.0",
-    "d3-zoom": "^1.7.1",
-    "js-base64": "^2.4.3",
-    "lodash": "^4.17.4"
   },
   "devDependencies": {
     "autoprefixer": "^7.1.2",
@@ -66,9 +58,7 @@
     "shelljs": "^0.7.6",
     "uglifyjs-webpack-plugin": "^1.1.1",
     "url-loader": "^0.5.8",
-    "vue": "^2.5.2",
     "vue-loader": "^13.3.0",
-    "vue-router": "^3.0.1",
     "vue-style-loader": "^3.0.1",
     "vue-template-compiler": "^2.5.2",
     "webpack": "^3.6.0",

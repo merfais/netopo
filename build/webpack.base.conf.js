@@ -41,10 +41,14 @@ module.exports = {
     }
   },
   plugins: [
-    new webpack.ProvidePlugin({
-      _: 'lodash',
-    }),
+    // new webpack.ProvidePlugin({
+    //   _: 'lodash',
+    // }),
   ],
+  externals: {
+    vue: 'Vue',
+    'vue-router': 'VueRouter',
+  },
   module: {
     rules: [
       ...(config.dev.useEslint ? [createLintingRule()] : []),

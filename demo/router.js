@@ -26,11 +26,5 @@ export default new Router({
         },
       ],
     },
-    {
-      path: '/',
-      component(resolve) {
-        require(['./HelloWorld.vue'], resolve)
-      },
-    },
   ]
 })
