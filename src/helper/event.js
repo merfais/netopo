@@ -6,6 +6,12 @@ export default class Eventer {
 
   // 外部注册事件
   on(name, handler) {
+    if (typeof name !== 'string') {
+      throw new Error('event name type should be String')
+    }
+    if (!_.isFunction(handler)) {
+      throw new Error('event handler type should be Function')
+    }
     if (this._eventMap.has(name)) {
       this._eventMap.get(name).push(handler)
     } else {
@@ -29,7 +35,9 @@ export default class Eventer {
   // 对外派发事件，触发外部 on 注册的事件回调
   emit(name, ...paramters) {
     _.forEach(this._eventMap.get(name), handler => {
-      handler(...paramters)
+      if (_.isFunction(handler)) {
+        handler(...paramters)
+      }
     })
   }
   // 对内部 $selector 注册事件

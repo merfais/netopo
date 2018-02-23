@@ -13,39 +13,52 @@ import {
 const dftOptions = {
   enable: true,
   speed: {
-    alpha: 1.2,            // alpha 初值，仿真速度
-    alphaMin: 0.2,       // alpha 最小值
-    alphaTarget: 0.15,   // alpha 目标值
-    alphaDecay: 0.02,    // alpha 衰减系数
-    velocityDecay: 0.95,  // 速度衰减系数，摩擦力
+    alpha: null,          // alpha 初值，仿真速度
+    alphaMin: 0.5,        // alpha 最小值
+    alphaTarget: null,    // alpha 目标值
+    alphaDecay: null,     // alpha 衰减系数
+    velocityDecay: null,  // 速度衰减系数，摩擦力
     onTick: null,
     onEnd: null,
   },
   force: {
     nBody: {
       enable: true,
-      strength: -350,    // 引力强度，重力模型、电荷力模型
-      theta: 1.5,        // Barnes-Hut 相关
-      distanceMin: 60,   // 最小距离
-      distanceMax: 400,  // 最大距离
+      strength: null,     // 引力强度，重力模型、电荷力模型
+      theta: null,        // Barnes-Hut 相关
+      distanceMin: null,  // 最小距离
+      distanceMax: null,  // 最大距离
     },
     link: {
       enable: true,
-      distance: 100,    // 两点距离
-      strength: 1.2,    // 连线的弹力强度
-      iterations: 3,    // 迭代次数
+      distance: 60,       // 两点距离
+      strength: link => { // 连线的弹力强度
+        /* eslint-disable no-underscore-dangle */
+        const srcL = link.source._edges.length
+        const dstL = link.target._edges.length
+        /* eslint-enable no-underscore-dangle */
+        const min = Math.min(srcL, dstL)
+        if (min === 1) {
+          return 2.2
+        } else if (min === 2) {
+          return 1.5
+        } else {
+          return 1 / Math.max(srcL, dstL)
+        }
+      },
+      iterations: null,   // 迭代次数
       id: d => d.id,      // node索引函数
     },
     collide: {
       enable: true,
-      radius: 15,       // 碰撞半径
-      strength: 0.3,    // 碰撞强度
-      iterations: 3,    // 迭代次数
+      radius: 15,         // 碰撞半径
+      strength: null,     // 碰撞强度
+      iterations: null,   // 迭代次数
     },
     center: {
       enable: true,
-      x: null,          // 中心X坐标
-      y: null,          // 中心Y坐标
+      x: null,            // 中心X坐标
+      y: null,            // 中心Y坐标
     },
   }
 }
