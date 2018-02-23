@@ -1,8 +1,6 @@
 const fs = require('fs')
 const path = require('path')
-// const zlib = require('zlib')
 const rollup = require('rollup')
-// const uglify = require('uglify-js')
 
 const resolve = p => path.resolve(__dirname, '../', p)
 if (!fs.existsSync(resolve('dist'))) {
@@ -21,22 +19,10 @@ if (process.argv[2]) {
 
 function buildEntry (config) {
   const output = config.output
-  // const { file, banner } = output
-  // const isProd = /min\.js$/.test(file)
+  console.log(config)
   return rollup.rollup(config).then(bundle => {
-    // const { code } = bundle.generate(output)
     return bundle.write(output)
   })
-  /*
-    .then(({ code }) => {
-      if (isProd) {
-        var minified = (banner ? banner + '\n' : '') + code
-        return write(file, minified, true)
-      } else {
-        return write(file, code)
-      }
-    })
-  */
 }
 
 function build (builds) {

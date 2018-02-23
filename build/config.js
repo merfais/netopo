@@ -26,7 +26,7 @@ const builds = {
     dest: resolve('dist/netopo.common.min.js'),
     format: 'cjs',
     env: 'production',
-    plugin: [uglify()],
+    plugins: [uglify()],
     banner
   },
   // (ES Modules). Used by bundlers that support ES Modules,
@@ -36,7 +36,7 @@ const builds = {
     dest: resolve('dist/netopo.esm.min.js'),
     format: 'es',
     env: 'production',
-    plugin: [uglify()],
+    plugins: [uglify()],
     banner
   },
   // production build
@@ -45,7 +45,7 @@ const builds = {
     dest: resolve('dist/netopo.min.js'),
     format: 'umd',
     env: 'production',
-    plugin: [uglify()],
+    plugins: [uglify()],
     banner
   },
   // development build (CommonJS)
@@ -79,13 +79,12 @@ function genConfig (name) {
   const config = {
     input: opts.entry,
     plugins: [
-      progress({
-        clearLine: false
-      }),
+      progress(),
       eslint(),
       nodeResolve(),
       babel({
-        exclude: 'node_modules/**'
+        exclude: 'node_modules/**',
+        runtimeHelpers: true,
       }),
       commonjs(),
     ].concat(opts.plugins || []),
@@ -96,12 +95,6 @@ function genConfig (name) {
       name: opts.moduleName || 'Netopo'
     }
   }
-
-  // if (opts.env) {
-  //   config.plugins.push(replace({
-  //     'process.env.NODE_ENV': JSON.stringify(opts.env)
-  //   }))
-  // }
 
   Object.defineProperty(config, '_name', {
     enumerable: false,
