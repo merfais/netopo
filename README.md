@@ -8,6 +8,8 @@ netopo将原来作用于拓扑图的滚轮事件转移到缩略图上，
 通过对缩略图上的可视区的缩放来完成拓扑图的缩放，因此，
 在缩略图区域外的滚轮事件仍用于屏幕的滚动，提升了用户体验。
 
+## [点击查看 Demo](https://merfais.github.io/netopo/)
+
 ## 获取 netopo
 
 由于尚未发布到npm，因此目前只能通过下载代码的方式使用。
@@ -658,7 +660,7 @@ graph.render({ nodes, edges })
   ```
 ### 方法
 
-+ render({ nodes = [], edges = [] }) 渲染拓扑图
++ **render({ nodes = [], edges = [] })** 渲染拓扑图
 
   + nodes 节点集，可配置属性与`opiotns.node`相同，但需要多一个`id`做唯一的key
 
@@ -723,15 +725,15 @@ graph.render({ nodes, edges })
   + 数字之间以`.`(半角点)连接的 【如ip地址】
   + 其他非法字符
 
-+ setOptions(options) 设置(重置)拓扑图参数
++ **setOptions(options)** 设置(重置)拓扑图参数
 
   + options 同构造函数的options
 
-+ getOptionsRef() 获取当前options引用值
++ **getOptionsRef()** 获取当前options引用值
 
 + resize() 强制执行resize
 
-+ on(names, handler) 注册事件回调
++ **on(names, handler)** 注册事件回调
 
   + names: 事件名，可注册事件参考事件的文档
 
@@ -743,7 +745,7 @@ graph.render({ nodes, edges })
   同一个事件可被注册多次，拓扑图内部维护着一个事件队列，
   同一事件先注册的回调函数先被执行
 
-+ off(names, handler) 注销事件回调
++ **off(names, handler)** 注销事件回调
 
   + names: 事件名，可注册事件参考事件的文档
 
@@ -753,177 +755,177 @@ graph.render({ nodes, edges })
 
   注册的事件需要在不再使用时及时注销，避免造成内存泄漏
 
-+ destroy() 销毁实例资源
++ **destroy()** 销毁实例资源
 
 ### 事件
 
 node相关
 
-+ node.hover(d, i, nodes)：hover节点时派发
++ **node.hover(d, i, nodes)**：hover节点时派发
 
-  参数说明参考[d3-selection.event](https://github.com/d3/d3-selection# Handling Events)
+  参数说明参考[d3-selection.event](https://github.com/d3/d3-selection#handling-events)
 
-+ node.click(d, i, nodes)：click节点时派发
++ **node.click(d, i, nodes)**：click节点时派发
 
-  参数说明参考[d3-selection.event](https://github.com/d3/d3-selection# Handling Events)
+  参数说明参考[d3-selection.event](https://github.com/d3/d3-selection#handling-events)
 
 edge相关
 
-+ edge.hover(d, i, nodes)：hover节点时派发
++ **edge.hover(d, i, nodes)**：hover节点时派发
 
-  参数说明参考[d3-selection.event](https://github.com/d3/d3-selection# Handling Events)
+  参数说明参考[d3-selection.event](https://github.com/d3/d3-selection#handling-events)
 
-+ edge.click(d, i, nodes)：click节点时派发
++ **edge.click(d, i, nodes)**：click节点时派发
 
-  参数说明参考[d3-selection.event](https://github.com/d3/d3-selection# Handling Events)
+  参数说明参考[d3-selection.event](https://github.com/d3/d3-selection#handling-events)
 
 drag相关
 
-+ drag.create()：drag实例创建完派发
++ **drag.create()**：drag实例创建完派发
 
   无参数
 
-+ drag.start(event, d): 转发d3.drag.event.start事件
++ **drag.start(event, d)**: 转发d3.drag.event.start事件
 
-  + event: 参考[d3-drag.event](https://github.com/d3/d3-drag#Drag Events)
-
-  + d: 被拖拽节点的data引用
-
-+ drag.dragging(event, d): 转发d3.drag.event.drag事件
-
-  + event: 参考[d3-drag.event](https://github.com/d3/d3-drag#Drag Events)
+  + event: 参考[d3-drag.event](https://github.com/d3/d3-drag#drag-events)
 
   + d: 被拖拽节点的data引用
 
-+ drag.end(event, d): 转发d3.drag.event.end事件
++ **drag.dragging(event, d)**: 转发d3.drag.event.drag事件
 
-  + event: 参考[d3-drag.event](https://github.com/d3/d3-drag#Drag Events)
+  + event: 参考[d3-drag.event](https://github.com/d3/d3-drag#drag-events)
 
   + d: 被拖拽节点的data引用
 
-+ drag.destroy(): drag实例销毁后派发
++ **drag.end(event, d)**: 转发d3.drag.event.end事件
+
+  + event: 参考[d3-drag.event](https://github.com/d3/d3-drag#drag-events)
+
+  + d: 被拖拽节点的data引用
+
++ **drag.destroy()**: drag实例销毁后派发
 
   无参数
 
 tooltip相关
 
-+ tooltip.create()： 创建实例完成后派发
++ **tooltip.create()**： 创建实例完成后派发
 
   无参数
 
-+ tooltip.show()： tooltip.formatter执行前派发
++ **tooltip.show()**： tooltip.formatter执行前派发
 
   无参数
 
-+ tooltip.update()： tooltip位置更新后派发
++ **tooltip.update()**： tooltip位置更新后派发
 
   无参数
 
-+ tooltip.hide()：tooltip隐藏后派发
++ **tooltip.hide()**：tooltip隐藏后派发
 
   无参数
 
-+ tooltip.destroy()：tooltip销毁后派发
++ **tooltip.destroy()**：tooltip销毁后派发
 
   无参数
 
 
 simulation相关
 
-+ simulation.create(): 创建实例完成后派发
++ **simulation.create()**: 创建实例完成后派发
 
   无参数
 
-+ simulation.start(): 重启模拟前派发
++ **simulation.start()**: 重启模拟前派发
 
   无参数
 
-+ simulation.restart(): 重启模拟时派发
++ **simulation.restart()**: 重启模拟时派发
 
   无参数
 
-+ simulation.stop(): 终止模拟时派发
++ **simulation.stop()**: 终止模拟时派发
 
   无参数
 
-+ simulation.tick(): 每次simulation.tick事件更新完DOM后派发
++ **simulation.tick()**: 每次simulation.tick事件更新完DOM后派发
 
   无参数
 
-+ simulation.end(): simulation.end事件更新完DOM后派发，
++ **simulation.end()**: simulation.end事件更新完DOM后派发，
   当`simulation.enable=false`，调用`update`后立刻派发
 
   无参数
 
-+ simulation.destroy(): 实例销毁后派发
++ **simulation.destroy()**: 实例销毁后派发
 
   无参数
 
 
 zoom相关
 
-+ zoom.create(): 创建实例完成后派发
++ **zoom.create()**: 创建实例完成后派发
 
   无参数
 
-+ zoom.update(): 调用`update`函数后派发
++ **zoom.update()**: 调用`update`函数后派发
 
   无参数
 
-+ zoom.start(event, transform): 转发d3.zoom.event.start事件
++ **zoom.start(event, transform)**: 转发d3.zoom.event.start事件
 
-  + event: 参考[d3-zoom.event](https://github.com/d3/d3-zoom#Zoom Events)
-
-  + transform: 拓扑图当前transform值
-
-+ zoom.zooming(): 转发d3.zoom.event.zoom事件
-
-  + event: 参考[d3-zoom.event](https://github.com/d3/d3-zoom#Zoom Events)
+  + event: 参考[d3-zoom.event](https://github.com/d3/d3-zoom#zoom-events)
 
   + transform: 拓扑图当前transform值
 
-+ zoom.end(): 转发d3.zoom.event.end事件
++ **zoom.zooming()**: 转发d3.zoom.event.zoom事件
 
-  + event: 参考[d3-zoom.event](https://github.com/d3/d3-zoom#Zoom Events)
+  + event: 参考[d3-zoom.event](https://github.com/d3/d3-zoom#zoom-events)
 
   + transform: 拓扑图当前transform值
 
-+ zoom.destroy(): 销毁实例后派发
++ **zoom.end()**: 转发d3.zoom.event.end事件
+
+  + event: 参考[d3-zoom.event](https://github.com/d3/d3-zoom#zoom-events)
+
+  + transform: 拓扑图当前transform值
+
++ **zoom.destroy()**: 销毁实例后派发
 
   无参数
 
 
 thumbnails相关
 
-+ thumbnails.create(): 创建实例完成后派发
++ **thumbnails.create()**: 创建实例完成后派发
 
   无参数
 
-+ thumbnails.update(): 更新完缩略图后派发，更新brush也会派发
++ **thumbnails.update()**: 更新完缩略图后派发，更新brush也会派发
 
   无参数
 
-+ thumbnails.hover(): hover到缩略图时派发
++ **thumbnails.hover()**: hover到缩略图时派发
 
   无参数
 
-+ thumbnails.zoom(transform): 在缩略图上使用滚轮控制缩放时派发
++ **thumbnails.zoom(transform)**: 在缩略图上使用滚轮控制缩放时派发
 
   + transform 拓扑图当前transform值
 
-+ thumbnails.zoomend(): 在缩略图上使用滚轮控制缩放结束后派发
++ **thumbnails.zoomend()**: 在缩略图上使用滚轮控制缩放结束后派发
 
   无参数
 
-+ thumbnails.drag(transform): 在缩略图时使用左键控制平移时派发
++ **thumbnails.drag(transform)**: 在缩略图时使用左键控制平移时派发
 
   + transform 拓扑图当前transform值
 
-+ thumbnails.dragend: 在缩略图时使用左键控制平移结束后派发
++ **thumbnails.dragend()**: 在缩略图时使用左键控制平移结束后派发
 
   无参数
 
-+ thumbnails.destroy: thumbnails销毁后派发
++ **thumbnails.destroy()**: thumbnails销毁后派发
 
   无参数
 
